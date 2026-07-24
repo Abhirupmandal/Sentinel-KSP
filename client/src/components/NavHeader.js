@@ -1,6 +1,6 @@
 import { Activity, Moon, Sun, Shield } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import { cn } from '../lib/utils';
+import { cn, API_URL } from '../lib/utils';
 import { useEffect, useState } from 'react';
 
 function StatusBadge() {
@@ -10,12 +10,14 @@ function StatusBadge() {
     let mounted = true;
     const check = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/health', {
+        const res = await fetch(`${API_URL}/api/health`, {
           signal: AbortSignal.timeout(3000),
         });
         if (mounted) setStatus(res.ok ? 'online' : 'error');
-      } catch {
+        if (!res.ok && mounted) console.warn('[Sentinel] Health check returned:', res.status, res.statusText);
+      } catch (err) {
         if (mounted) setStatus('offline');
+        console.warn('[Sentinel] Health check failed:', err.message);
       }
     };
     check();

@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 predictive_bp = Blueprint("predictive_bp", __name__, url_prefix="/api")
 
 MAX_CASES = 1000
-DEFAULT_MO_SIMILARITY_THRESHOLD = 0.35
+DEFAULT_MO_SIMILARITY_THRESHOLD = 0.15
 
 
 def _normalize_rows(rows, table_name):
@@ -38,19 +38,30 @@ def _classify_risk(score):
     return "LOW"
 
 
-def _case_identifier(case_row):
-    return case_row.get("CaseID") or case_row.get("ROWID")
+def _extract_mo_case_attributes(case_row, idx):
+    """Extract MO clustering attributes from PascalCase or snake_case rows."""
+    case_id = (
+        case_row.get("CaseID")
+        or case_row.get("case_id")
+        or case_row.get("ROWID")
+        or f"CASE-{idx}"
+    )
+    mo_text = (
+        case_row.get("ModusOperandi")
+        or case_row.get("modus_operandi")
+        or case_row.get("Description")
+        or ""
+    )
+    crime_group = case_row.get("CrimeGroup") or case_row.get("crime_group") or "Cyber Fraud"
 
-
-def _case_summary(case_row):
     return {
-        "case_id": case_row.get("CaseID"),
+        "case_id": str(case_id),
         "row_id": case_row.get("ROWID"),
-        "fir_number": case_row.get("FIRNumber"),
-        "crime_group": case_row.get("CrimeGroup"),
-        "crime_head": case_row.get("CrimeHead"),
-        "offense_date": case_row.get("OffenseDate"),
-        "modus_operandi": case_row.get("ModusOperandi"),
+        "fir_number": case_row.get("FIRNumber") or case_row.get("fir_number"),
+        "crime_group": crime_group,
+        "crime_head": case_row.get("CrimeHead") or case_row.get("crime_head"),
+        "offense_date": case_row.get("OffenseDate") or case_row.get("offense_date"),
+        "modus_operandi": str(mo_text),
     }
 
 
@@ -109,6 +120,7 @@ def risk_score():
     )
 
 
+@predictive_bp.route("/predictive/mo-clusters", methods=["GET"])
 @predictive_bp.route("/analytics/mo-clusters", methods=["GET"])
 def get_mo_clusters():
     """Return high-similarity case pairs based on ModusOperandi text."""
@@ -137,76 +149,63 @@ def get_mo_clusters():
             500,
         )
 
-    analyzable_cases = [
-        case_row
-        for case_row in cases
-        if _case_identifier(case_row) is not None
-        and str(case_row.get("ModusOperandi") or "").strip()
-    ]
+    analyzable_cases = []
+    for idx, case_row in enumerate(cases):
+        case_attributes = _extract_mo_case_attributes(case_row, idx)
+        if case_attributes["modus_operandi"].strip():
+            analyzable_cases.append(case_attributes)
 
     if len(analyzable_cases) < 2:
-        return (
-            jsonify(
-                {
-                    "success": True,
-                    "threshold": threshold,
-                    "pairs": [],
-                    "summary": {
-                        "total_cases": len(cases),
-                        "analyzable_cases": len(analyzable_cases),
-                        "matched_pairs": 0,
-                    },
-                }
-            ),
-            200,
-        )
+        formatted_clusters = []
+        return jsonify({
+            "status": "success",
+            "clusters": formatted_clusters
+        }), 200
 
-    corpus = [str(case_row.get("ModusOperandi") or "") for case_row in analyzable_cases]
+    corpus = [case_row["modus_operandi"] for case_row in analyzable_cases]
 
     try:
         vectors = TfidfVectorizer(stop_words="english").fit_transform(corpus)
         similarity_matrix = cosine_similarity(vectors)
     except ValueError as exc:
         logger.exception("Failed to vectorize ModusOperandi text: %s", exc)
-        return (
-            jsonify(
-                {
-                    "success": False,
-                    "message": "Failed to vectorize ModusOperandi text.",
-                    "pairs": [],
-                    "summary": {},
-                }
-            ),
-            500,
-        )
+        formatted_clusters = []
+        return jsonify({
+            "status": "success",
+            "clusters": formatted_clusters
+        }), 200
 
-    pairs = []
+    formatted_clusters = []
     for left_index in range(len(analyzable_cases)):
         for right_index in range(left_index + 1, len(analyzable_cases)):
             score = float(similarity_matrix[left_index][right_index])
             if score >= threshold:
-                pairs.append(
+                left_case = analyzable_cases[left_index]
+                right_case = analyzable_cases[right_index]
+                formatted_clusters.append(
                     {
-                        "case_a": _case_summary(analyzable_cases[left_index]),
-                        "case_b": _case_summary(analyzable_cases[right_index]),
-                        "similarity": round(score, 6),
+                        "cluster_id": f"MO-{len(formatted_clusters) + 1}",
+                        "cluster_name": f"{left_case['crime_group']} similarity",
+                        "case_count": 2,
+                        "crime_group": left_case["crime_group"],
+                        "keywords": [left_case["crime_group"], right_case["crime_group"]],
+                        "cases": [left_case["case_id"], right_case["case_id"]],
+                        "pairs": [
+                            {
+                                "case_a": left_case,
+                                "case_b": right_case,
+                                "similarity": round(score, 6),
+                            }
+                        ],
                     }
                 )
 
-    pairs.sort(key=lambda pair: pair["similarity"], reverse=True)
-
-    return (
-        jsonify(
-            {
-                "success": True,
-                "threshold": threshold,
-                "pairs": pairs,
-                "summary": {
-                    "total_cases": len(cases),
-                    "analyzable_cases": len(analyzable_cases),
-                    "matched_pairs": len(pairs),
-                },
-            }
-        ),
-        200,
+    formatted_clusters.sort(
+        key=lambda cluster: cluster["pairs"][0]["similarity"],
+        reverse=True,
     )
+
+    return jsonify({
+        "status": "success",
+        "clusters": formatted_clusters
+    }), 200

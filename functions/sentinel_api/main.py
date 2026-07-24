@@ -149,7 +149,19 @@ class CatalystClient:
 def create_app():
     """Application factory that assembles and configures the Flask app."""
     app = Flask(__name__)
-    CORS(app, resources={r"/*": {"origins": "*"}})
+    CORS(
+        app,
+        resources={
+            r"/api/*": {
+                "origins": "http://localhost:3000",
+                "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+                "allow_headers": ["Content-Type", "Authorization"],
+            },
+            r"/": {"origins": "http://localhost:3000"},
+        },
+        supports_credentials=False,
+        automatic_options=True,
+    )
 
     # Register all feature blueprints.
     app.register_blueprint(auth_bp)

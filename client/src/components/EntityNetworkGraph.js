@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
+import { Network } from 'vis-network/standalone';
 import { motion } from 'framer-motion';
 import { Share2 } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { cn, API_URL } from '../lib/utils';
 
 export default function EntityNetworkGraph() {
   const containerRef = useRef(null);
@@ -10,66 +11,101 @@ export default function EntityNetworkGraph() {
 
   useEffect(() => {
     let network = null;
+    let cancelled = false;
+
+    const buildGraph = (nodes, edges) => {
+      if (!containerRef.current || cancelled) return;
+
+      const options = {
+        physics: {
+          solver: 'forceAtlas2Based',
+          forceAtlas2Based: {
+            gravitationalConstant: -40,
+            centralGravity: 0.005,
+            springLength: 180,
+            springConstant: 0.02,
+          },
+          stabilization: { iterations: 100 },
+        },
+        nodes: { shape: 'dot', scaling: { min: 10, max: 30 } },
+        edges: { arrows: { to: { enabled: true, scaleFactor: 0.5 } } },
+        interaction: { hover: true, tooltipDelay: 200 },
+      };
+
+      if (network) {
+        network.destroy();
+      }
+
+      network = new Network(containerRef.current, { nodes, edges }, options);
+      network.on('click', p => {
+        const node = nodes.find(n => n.id === p.nodes[0]);
+        if (node) console.info('[Sentinel] Node clicked:', node);
+      });
+    };
 
     const init = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/graph/network');
+        const url = `${API_URL}/api/graph/network`;
+        const res = await fetch(url);
         let data;
-        try { data = await res.json(); } catch (e) { data = null; }
-
-        const { Network } = await import('vis-network/standalone');
-
-        const nodes = (data && data.nodes && data.nodes.length)
-          ? data.nodes.map(function (n) { return {
-              id: n.id,
-              label: n.label || n.id,
-              group: n.group || 'default',
-              color: nodeColor(n.group),
-              font: { color: '#e2e8f0', size: 11 },
-              borderWidth: 1,
-              size: n.group === 'case' ? 20 : 14,
-            }; })
-          : getSampleNodes();
-
-        const edges = (data && data.edges && data.edges.length)
-          ? data.edges.map(function (e) { return {
-              from: e.from || e.source,
-              to: e.to || e.target,
-              color: { color: '#475569', highlight: '#38bdf8' },
-              width: 1.5,
-              smooth: { type: 'curvedCW', roundness: 0.15 },
-            }; })
-          : getSampleEdges();
-
-        const options = {
-          physics: {
-            solver: 'forceAtlas2Based',
-            forceAtlas2Based: { gravitationalConstant: -40, centralGravity: 0.005, springLength: 180, springConstant: 0.02 },
-            stabilization: { iterations: 100 },
-          },
-          nodes: { shape: 'dot', scaling: { min: 10, max: 30 } },
-          edges: { arrows: { to: { enabled: true, scaleFactor: 0.5 } } },
-          interaction: { hover: true, tooltipDelay: 200 },
-          background: 'transparent',
-        };
-
-        if (containerRef.current) {
-          network = new Network(containerRef.current, { nodes, edges }, options);
-          network.on('click', p => {
-            const node = nodes.find(n => n.id === p.nodes[0]);
-            if (node) console.info('[Sentinel] Node clicked:', node);
-          });
+        try {
+          data = await res.json();
+        } catch (e) {
+          data = null;
         }
 
+        if (!res.ok) {
+          console.warn('[Sentinel] Network graph API returned:', res.status, res.statusText);
+        }
+
+        if (!data || !data.nodes || !data.nodes.length) {
+          throw new Error('empty data');
+        }
+
+        const nodes = data.nodes.map(function (n) {
+          return {
+            id: n.id,
+            label: n.label || n.id,
+            group: n.group || 'default',
+            color: nodeColor(n.group),
+            font: { color: '#e2e8f0', size: 11 },
+            borderWidth: 1,
+            size: n.group === 'case' ? 20 : 14,
+          };
+        });
+
+        const edges = data.edges
+          ? data.edges.map(function (e) {
+              return {
+                from: e.from || e.source,
+                to: e.to || e.target,
+                color: { color: '#475569', highlight: '#38bdf8' },
+                width: 1.5,
+                smooth: { type: 'curvedCW', roundness: 0.15 },
+              };
+            })
+          : [];
+
+        buildGraph(nodes, edges);
         setLoading(false);
       } catch (err) {
-        setError(err.message);
+        if (err.message !== 'empty data') {
+          console.error('[Sentinel] Network graph fetch error:', err.message);
+        }
+        console.info('[Sentinel] Using sample graph data as fallback');
+        setError(err.message === 'empty data' ? null : err.message);
+
+        buildGraph(getSampleNodes(), getSampleEdges());
         setLoading(false);
       }
     };
 
     init();
-    return () => { if (network) network.destroy(); };
+
+    return () => {
+      cancelled = true;
+      if (network) network.destroy();
+    };
   }, []);
 
   return (
@@ -116,9 +152,23 @@ export default function EntityNetworkGraph() {
 }
 
 function nodeColor(group) {
-  if (group === 'case') return { background: '#1d4ed8', border: '#3b82f6', highlight: { background: '#2563eb', border: '#60a5fa' } };
-  if (group === 'accused') return { background: '#991b1b', border: '#ef4444', highlight: { background: '#b91c1c', border: '#f87171' } };
-  return { background: '#1e293b', border: '#475569', highlight: { background: '#334155', border: '#64748b' } };
+  if (group === 'case')
+    return {
+      background: '#1d4ed8',
+      border: '#3b82f6',
+      highlight: { background: '#2563eb', border: '#60a5fa' },
+    };
+  if (group === 'accused')
+    return {
+      background: '#991b1b',
+      border: '#ef4444',
+      highlight: { background: '#b91c1c', border: '#f87171' },
+    };
+  return {
+    background: '#1e293b',
+    border: '#475569',
+    highlight: { background: '#334155', border: '#64748b' },
+  };
 }
 
 function getSampleNodes() {

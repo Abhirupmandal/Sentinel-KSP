@@ -98,15 +98,23 @@ def insert_table_row(project_domain: str, project_id: str, table_name: str, acce
 # ---------------------------------------------------------------------------
 CRIME_GROUPS = ["Cyber Crime", "Financial Fraud", "Property Offense", "Body Offense", "White Collar Crime"]
 CRIME_HEADS = [
-    "Phishing", "Identity Theft", "Ransomware Attack", "Online Banking Fraud", 
+    "Phishing", "Identity Theft", "Ransomware Attack", "Online Banking Fraud",
     "Cheating & Forgery", "UPI / ATM Swindling", "Crypto Scam", "Data Breach"
 ]
 UNITS = [
-    "UNIT-101 (Bengaluru Urban)", "UNIT-102 (Mysuru City)", "UNIT-103 (Mangaluru City)",
-    "UNIT-104 (Hubballi-Dharwad)", "UNIT-105 (Belagavi)", "UNIT-106 (Cyber Crime HQ)"
+    "UNIT-101 (Delhi NCR)", "UNIT-102 (Mumbai Central)", "UNIT-103 (Bengaluru Cyber)",
+    "UNIT-104 (Kolkata Metro)", "UNIT-105 (Hyderabad East)", "UNIT-106 (Pune Crime Branch)"
+]
+REGIONAL_HUBS = [
+    (28.6139, 77.2090),  # Delhi NCR
+    (19.0760, 72.8777),  # Mumbai
+    (12.9716, 77.5946),  # Bengaluru
+    (22.5726, 88.3639),  # Kolkata
+    (17.3850, 78.4867),  # Hyderabad
+    (18.5204, 73.8567),  # Pune
 ]
 ACT_SECTIONS = [
-    "IT Act Sec 66D / IPC 420", "IT Act Sec 66C", "IT Act Sec 43 / IPC 379", 
+    "IT Act Sec 66D / IPC 420", "IT Act Sec 66C", "IT Act Sec 43 / IPC 379",
     "IPC 406 / IT Act Sec 66", "IPC 419 / IPC 420", "IT Act Sec 67A"
 ]
 MODUS_OPERANDI = [
@@ -136,9 +144,9 @@ def generate_mock_cases(count=50, start_id=1021):
         case_id = f"CASE-2026-{curr_num}"
         fir_no = f"FIR-2026-{curr_num}"
         
-        # Karnataka GPS Bounding Box
-        lat = round(12.9716 + random.uniform(-0.3, 0.3), 6)
-        lng = round(77.5946 + random.uniform(-0.3, 0.3), 6)
+        hub_lat, hub_lng = random.choice(REGIONAL_HUBS)
+        lat = round(hub_lat + random.uniform(-0.15, 0.15), 6)
+        lng = round(hub_lng + random.uniform(-0.15, 0.15), 6)
         
         cases.append({
             "CaseID": case_id,
