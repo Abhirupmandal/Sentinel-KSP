@@ -1,6 +1,6 @@
 {
   "name": "sentinel_api",
-  "type": "advanced",
+  "type": "advancedio",
   "stack": "Python-3.11",
   "execution": {
     "main": "main.py"
