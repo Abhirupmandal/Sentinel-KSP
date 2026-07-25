@@ -7,6 +7,7 @@
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![Zoho Catalyst](https://img.shields.io/badge/Zoho-Catalyst-1F73C4?logo=zoho&logoColor=white)](https://www.zoho.com/catalyst/)
 [![Scikit-Learn](https://img.shields.io/badge/Scikit--Learn-ML-F7931E?logo=scikitlearn&logoColor=white)](https://scikit-learn.org/)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 Sentinel-KSP is a full-stack crime intelligence and cyber command platform built for the Karnataka State Police. It combines a React single-page application with a Flask backend deployed on Zoho Catalyst Advanced Functions, providing statewide crime analytics, geospatial hotspot detection, entity-link investigation, predictive risk scoring, and a complete officer lifecycle and session governance system.
 
@@ -743,4 +744,5 @@ Pairs with $\text{Sim} \geq 0.35$ are flagged as potential serial MO matches.
 
 ## License
 
-This project was developed for the Datathon 2026 competition. All rights reserved.
+This project is licensed under the [Apache License 2.0](LICENSE).
+
