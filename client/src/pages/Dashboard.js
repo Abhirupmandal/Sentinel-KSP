@@ -3,6 +3,7 @@ import { LayoutDashboard } from 'lucide-react';
 import SpatialHotspots from '../components/SpatialHotspots';
 import EntityNetworkGraph from '../components/EntityNetworkGraph';
 import MOSimilarityClusters from '../components/MOSimilarityClusters';
+import StatsBar from '../components/StatsBar';
 
 export default function Dashboard() {
   return (
@@ -19,15 +20,20 @@ export default function Dashboard() {
           </h1>
         </div>
         <p className="text-sm text-slate-500 dark:text-slate-400 ml-8">
-          Real-time intelligence overview
+          Real-time intelligence overview — Sentinel-KSP 2026
         </p>
       </motion.div>
 
+      {/* KPI Stats Bar */}
+      <StatsBar />
+
+      {/* Map + Network Graph */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <SpatialHotspots />
         <EntityNetworkGraph />
       </div>
 
+      {/* MO Similarity Clusters */}
       <MOSimilarityClusters />
     </div>
   );

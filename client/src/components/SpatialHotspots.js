@@ -1,12 +1,12 @@
 import { motion } from 'framer-motion';
-import { MapPin, Layers } from 'lucide-react';
+import { Layers, Radio, ShieldAlert } from 'lucide-react';
 import { MapContainer, TileLayer, CircleMarker, Popup, Tooltip, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useEffect, useState } from 'react';
-import { cn, API_URL } from '../lib/utils';
+import { API_URL, fetchWithAuth } from '../lib/utils';
 
 function clusterRadius(size = 1) {
-  return Math.min(18, Math.max(8, 8 + (size - 1) * 0.7));
+  return Math.min(22, Math.max(10, 10 + (size - 1) * 0.8));
 }
 
 function ChangeView({ center, zoom }) {
@@ -15,6 +15,17 @@ function ChangeView({ center, zoom }) {
   return null;
 }
 
+const sampleHotspots = {
+  type: 'FeatureCollection',
+  features: [
+    { type: 'Feature', geometry: { type: 'Point', coordinates: [77.5946, 12.9716] }, properties: { cluster_id: 1, size: 24, label: 'Bengaluru Central - Financial Hub' } },
+    { type: 'Feature', geometry: { type: 'Point', coordinates: [72.8777, 19.0760] }, properties: { cluster_id: 2, size: 18, label: 'Mumbai Metro - Cyber Cell' } },
+    { type: 'Feature', geometry: { type: 'Point', coordinates: [77.2090, 28.6139] }, properties: { cluster_id: 3, size: 31, label: 'Delhi NCR - Sim Swap Ring' } },
+    { type: 'Feature', geometry: { type: 'Point', coordinates: [88.3639, 22.5726] }, properties: { cluster_id: 4, size: 12, label: 'Kolkata Metro - Phishing Trap' } },
+  ],
+  summary: { clusters: 4, total_cases: 85 },
+};
+
 export default function SpatialHotspots() {
   const [geoData, setGeoData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -22,20 +33,34 @@ export default function SpatialHotspots() {
 
   useEffect(() => {
     const url = `${API_URL}/api/spatial/hotspots`;
-    fetch(url)
+    fetchWithAuth(url)
       .then(r => {
         if (!r.ok) throw new Error(`HTTP ${r.status} ${r.statusText}`);
         return r.json();
       })
-      .then(d => {
-        console.log('[Sentinel] Spatial hotspots API success:', d);
-        setGeoData(d);
+      .then(res => {
+        const d = res.data || res;
+        const hotspots = d.hotspots || [];
+        const geoJson = {
+          type: 'FeatureCollection',
+          features: hotspots.map((h, i) => ({
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [h.longitude, h.latitude] },
+            properties: {
+              cluster_id: i,
+              size: h.case_count || h.intensity || 1,
+              crime_head: h.top_crime_head || 'Unknown',
+              label: h.top_crime_head || `Cluster ${i + 1}`,
+            },
+          })),
+          summary: { clusters: hotspots.length, total_cases: d.total_hotspots || hotspots.length },
+        };
+        setGeoData(geoJson);
         setApiFailed(false);
         setLoading(false);
       })
       .catch(err => {
         console.error('[Sentinel] Spatial hotspots fetch error:', err.message);
-        console.info('[Sentinel] Using sample spatial data as fallback');
         setApiFailed(true);
         setLoading(false);
       });
@@ -49,91 +74,98 @@ export default function SpatialHotspots() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.1 }}
-      className={cn(
-        'rounded-xl border border-border dark:border-border',
-        'bg-white dark:bg-card',
-        'shadow-glass-light dark:shadow-glass',
-        'backdrop-blur-md overflow-hidden'
-      )}
+      className="relative rounded-2xl border border-white/10 bg-[#121318]/90 backdrop-blur-xl shadow-2xl overflow-hidden"
     >
-      <div className="flex items-center justify-between px-5 py-4 border-b border-border dark:border-border">
+      {/* Top status accent gradient line */}
+      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-rose-500/20 via-rose-500 to-[#00d1ff]/40 opacity-90 z-20" />
+
+      {/* Header Bar */}
+      <div className="flex items-center justify-between px-6 py-4.5 border-b border-white/10 bg-black/20">
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-cyber-red/20">
-            <MapPin className="w-4 h-4 text-cyber-red" />
+          <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-rose-500/10 border border-rose-500/30 shadow-[0_0_12px_rgba(244,63,94,0.25)]">
+            <ShieldAlert className="w-5 h-5 text-rose-400" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
-              Spatial Hotspots
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              DBSCAN cluster heatmap
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-bold text-white font-sans tracking-tight">
+                Geospatial Incident Hotspots
+              </h2>
+              <span className="px-2 py-0.5 rounded bg-rose-500/10 text-rose-400 text-[10px] font-mono font-bold uppercase tracking-wider border border-rose-500/20">
+                DBSCAN SPATIAL
+              </span>
+            </div>
+            <p className="text-xs text-slate-400">
+              Statewide crime density & spatial anomaly clustering
             </p>
           </div>
         </div>
-        <Layers className="w-4 h-4 text-slate-400" />
+
+        <div className="flex items-center gap-3">
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-lg bg-white/5 border border-white/10 font-mono text-xs text-slate-300">
+            <Radio className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
+            <span><strong className="text-white">{features.length}</strong> ACTIVE ZONES</span>
+          </div>
+          <Layers className="w-4 h-4 text-slate-400" />
+        </div>
       </div>
 
-      <div className="h-[400px] relative">
+      {/* Map View Frame */}
+      <div className="h-[420px] relative bg-[#0a0b10]">
         {loading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/50 dark:bg-black/50 z-10">
-            <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+          <div className="absolute inset-0 flex items-center justify-center bg-[#0a0b10]/80 z-20 backdrop-blur-sm">
+            <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#121318] border border-white/10 text-[#00d1ff] font-mono text-xs">
+              <div className="w-4 h-4 border-2 border-[#00d1ff] border-t-transparent rounded-full animate-spin" />
+              <span>RENDERING SPATIAL TILES...</span>
+            </div>
           </div>
         )}
+
         {apiFailed && (
-          <div className="absolute top-3 left-3 z-10 px-3 py-1.5 rounded-lg bg-cyber-amber/20 border border-cyber-amber/30 text-xs text-cyber-amber">
-            Using sample data — backend unavailable
+          <div className="absolute top-4 left-4 z-20 px-3.5 py-2 rounded-xl bg-amber-500/15 border border-amber-500/30 text-xs font-mono text-amber-300 shadow-xl backdrop-blur-md">
+            ⚠️ API offline — Rendering simulated hotspot coordinates
           </div>
         )}
+
         <MapContainer
-          center={[20, 0]}
-          zoom={2}
-          className="h-full w-full"
-          zoomControl={false}
+          center={[20.5937, 78.9629]}
+          zoom={5}
+          scrollWheelZoom={false}
+          className="h-full w-full z-10"
         >
+          <ChangeView center={[20.5937, 78.9629]} zoom={5} />
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
+            attribution='&copy; <a href="https://carto.com/">CARTO</a> Dark Matter'
             url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
           />
-          <ChangeView center={[20.5937, 78.9629]} zoom={5} />
-          {features.map((feat, i) => {
-            const coords = feat.geometry?.coordinates;
-            if (!coords) return null;
-            const [lng, lat] = coords;
-            const props = feat.properties || {};
-            const size = props.cluster_size || props.count || 1;
+
+          {features.map((feat, idx) => {
+            const [lng, lat] = feat.geometry.coordinates;
+            const props = feat.properties;
+            const radius = clusterRadius(props.size);
+
             return (
               <CircleMarker
-                key={i}
+                key={idx}
                 center={[lat, lng]}
-                radius={clusterRadius(size)}
+                radius={radius}
                 pathOptions={{
-                  color: '#ef4444',
-                  weight: 1.5,
-                  opacity: 0.9,
-                  fillColor: '#f87171',
-                  fillOpacity: 0.35,
+                  color: '#ff3b3b',
+                  fillColor: '#ff3b3b',
+                  fillOpacity: 0.55,
+                  weight: 2,
                 }}
               >
-                <Tooltip
-                  direction="top"
-                  offset={[0, -clusterRadius(size)]}
-                  className="rounded-lg border border-white/10 bg-black/85 backdrop-blur-md text-white text-xs shadow-lg px-3 py-2"
-                >
-                  <div className="space-y-0.5">
-                    <p className="font-semibold text-cyber-red text-sm">Cluster {props.cluster_id || i + 1}</p>
-                    <p>Incidents: <span className="font-mono text-slate-200">{size}</span></p>
-                    {props.avg_risk != null && <p>Risk Score: <span className="font-mono text-slate-200">{props.avg_risk}</span></p>}
-                    {props.primary_mo && <p>Primary MO: <span className="font-mono text-slate-200">{props.primary_mo}</span></p>}
-                    {props.region && <p>Region: <span className="font-mono text-slate-200">{props.region}</span></p>}
+                <Tooltip direction="top" offset={[0, -radius]} opacity={0.95}>
+                  <div className="px-2 py-1 bg-[#121318] border border-rose-500/30 rounded text-slate-100 font-mono text-xs shadow-xl">
+                    <p className="font-bold text-rose-400">{props.label}</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">{props.size} Incidents Reported</p>
                   </div>
                 </Tooltip>
                 <Popup>
-                  <div className="text-xs leading-relaxed min-w-[130px]">
-                    <p className="font-semibold mb-1 text-slate-900">Cluster {props.cluster_id || i + 1}</p>
-                    <p>Incidents: <span className="font-mono">{size}</span></p>
-                    {props.avg_risk != null && <p>Risk Score: <span className="font-mono">{props.avg_risk}</span></p>}
-                    {props.primary_mo && <p>Primary MO: <span className="font-mono">{props.primary_mo}</span></p>}
-                    {props.region && <p>Region: {props.region}</p>}
+                  <div className="p-1 font-mono text-xs">
+                    <p className="font-bold text-rose-600">{props.label}</p>
+                    <p className="text-slate-600">Cases: {props.size}</p>
+                    <p className="text-slate-500 text-[10px] mt-1">Lat: {lat.toFixed(4)}, Lng: {lng.toFixed(4)}</p>
                   </div>
                 </Popup>
               </CircleMarker>
@@ -144,17 +176,3 @@ export default function SpatialHotspots() {
     </motion.div>
   );
 }
-
-const sampleHotspots = {
-  type: 'FeatureCollection',
-  features: [
-    { type: 'Feature', geometry: { type: 'Point', coordinates: [30.0, 40.0] }, properties: { cluster_id: 1, cluster_size: 8, avg_risk: 0.85, region: 'Eastern Europe', primary_mo: 'Phishing Kit' } },
-    { type: 'Feature', geometry: { type: 'Point', coordinates: [-10.0, 25.0] }, properties: { cluster_id: 2, cluster_size: 5, avg_risk: 0.72, region: 'North Africa', primary_mo: 'Credential Theft' } },
-    { type: 'Feature', geometry: { type: 'Point', coordinates: [75.0, 18.0] }, properties: { cluster_id: 3, cluster_size: 12, avg_risk: 0.91, region: 'South Asia', primary_mo: 'Ransomware' } },
-    { type: 'Feature', geometry: { type: 'Point', coordinates: [-100.0, 25.0] }, properties: { cluster_id: 4, cluster_size: 3, avg_risk: 0.60, region: 'North America', primary_mo: 'Data Exfil' } },
-    { type: 'Feature', geometry: { type: 'Point', coordinates: [120.0, -10.0] }, properties: { cluster_id: 5, cluster_size: 2, avg_risk: 0.45, region: 'Southeast Asia', primary_mo: 'Reconnaissance' } },
-    { type: 'Feature', geometry: { type: 'Point', coordinates: [15.0, -10.0] }, properties: { cluster_id: 6, cluster_size: 7, avg_risk: 0.78, region: 'Central Africa', primary_mo: 'BEC Scam' } },
-    { type: 'Feature', geometry: { type: 'Point', coordinates: [-60.0, -15.0] }, properties: { cluster_id: 7, cluster_size: 4, avg_risk: 0.55, region: 'South America', primary_mo: 'Malware' } },
-    { type: 'Feature', geometry: { type: 'Point', coordinates: [140.0, 35.0] }, properties: { cluster_id: 8, cluster_size: 6, avg_risk: 0.69, region: 'East Asia', primary_mo: 'DDoS' } },
-  ],
-};

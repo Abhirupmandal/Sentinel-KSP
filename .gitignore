@@ -8,9 +8,6 @@
 # -------------------------------------------------------------
 # Explicitly tracked source directories
 # -------------------------------------------------------------
-# The top-level application source directories MUST always be
-# tracked by Git. These negation rules defensively un-ignore
-# them in case a broader pattern above ever matches them.
 !functions/
 !functions/**
 !client/
@@ -25,6 +22,7 @@
 venv/
 env/
 ENV/
+*.venv
 
 # Byte-compiled / optimized files
 __pycache__/
@@ -57,12 +55,13 @@ coverage.xml
 .pytest_cache/
 .hypothesis/
 
-# Type checkers
+# Type checkers & linters
 .mypy_cache/
 .dmypy.json
 dmypy.json
 .pyre/
 .pytype/
+.ruff_cache/
 
 # Jupyter / IPython
 .ipynb_checkpoints
@@ -85,11 +84,14 @@ client/node_modules/
 dist/
 build/
 client/build/
+client/dist/
 .next/
 out/
 .vite/
 
-# Testing / coverage
+# Cache & Testing
+.cache/
+.eslintcache
 coverage/
 
 # Logs
@@ -117,6 +119,7 @@ graphify-out/
 .env
 .env.local
 .env.*.local
+*.env
 *.pem
 *.key
 *.cert
@@ -125,17 +128,20 @@ credentials.json
 
 
 # -------------------------------------------------------------
-# Logs & temporary files
+# Temporary files & backups
 # -------------------------------------------------------------
 *.log
 logs/
 *.pid
 *.seed
 *.pid.lock
+*.tmp
+*.temp
+*.bak
 
 
 # -------------------------------------------------------------
-# Editors / IDEs
+# IDEs, Editors & Agent Tooling
 # -------------------------------------------------------------
 .vscode/
 .idea/
@@ -148,6 +154,9 @@ logs/
 *.sublime-project
 *.sublime-workspace
 .history/
+.gemini/
+.agents/
+.antigravity/
 
 
 # -------------------------------------------------------------

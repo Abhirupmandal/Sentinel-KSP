@@ -2,109 +2,169 @@ import { useEffect, useRef, useState } from 'react';
 import { Network } from 'vis-network/standalone';
 import { motion } from 'framer-motion';
 import { Share2 } from 'lucide-react';
-import { cn, API_URL } from '../lib/utils';
+import { API_URL, fetchWithAuth } from '../lib/utils';
+
+function nodeColor(type) {
+  const t = (type || '').toLowerCase();
+  if (t === 'case') {
+    return {
+      background: '#00d1ff',
+      border: '#a4e6ff',
+      highlight: { background: '#4cd6ff', border: '#ffffff' },
+    };
+  }
+  if (t === 'victim') {
+    return {
+      background: '#39ff14',
+      border: '#79ff5b',
+      highlight: { background: '#37fe11', border: '#ffffff' },
+    };
+  }
+  return {
+    background: '#ff3b3b',
+    border: '#ffb3ac',
+    highlight: { background: '#ff7070', border: '#ffffff' },
+  };
+}
+
+const SAMPLE_GRAPH = {
+  nodes: [
+    { id: 'CASE-2026-1021', label: 'CASE-2026-1021', type: 'case', details: { CrimeHead: 'Phishing', CrimeGroup: 'Cyber Crime' } },
+    { id: 'CASE-2026-1045', label: 'CASE-2026-1045', type: 'case', details: { CrimeHead: 'Banking Fraud', CrimeGroup: 'Financial Crime' } },
+    { id: 'ACC-2031', label: 'Ramesh Kumar', type: 'accused', details: { ArrestStatus: 'Absconding' } },
+    { id: 'ACC-2032', label: 'Suresh Patil', type: 'accused', details: { ArrestStatus: 'Arrested' } },
+    { id: 'VIC-301', label: 'Victim-301', type: 'victim', details: { InjuryType: 'Financial Loss' } },
+  ],
+  edges: [
+    { source: 'ACC-2031', target: 'CASE-2026-1021' },
+    { source: 'ACC-2031', target: 'CASE-2026-1045' },
+    { source: 'ACC-2032', target: 'CASE-2026-1045' },
+    { source: 'VIC-301', target: 'CASE-2026-1021' },
+  ],
+};
 
 export default function EntityNetworkGraph() {
   const containerRef = useRef(null);
+  const networkRef = useRef(null);
   const [loading, setLoading] = useState(true);
+  const [summary, setSummary] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    let network = null;
     let cancelled = false;
 
-    const buildGraph = (nodes, edges) => {
+    const buildGraph = (visNodes, visEdges) => {
       if (!containerRef.current || cancelled) return;
+      if (networkRef.current) {
+        networkRef.current.destroy();
+      }
 
       const options = {
         physics: {
           solver: 'forceAtlas2Based',
           forceAtlas2Based: {
-            gravitationalConstant: -40,
-            centralGravity: 0.005,
-            springLength: 180,
+            gravitationalConstant: -60,
+            centralGravity: 0.004,
+            springLength: 170,
             springConstant: 0.02,
           },
-          stabilization: { iterations: 100 },
+          stabilization: { iterations: 120, updateInterval: 25 },
         },
-        nodes: { shape: 'dot', scaling: { min: 10, max: 30 } },
-        edges: { arrows: { to: { enabled: true, scaleFactor: 0.5 } } },
-        interaction: { hover: true, tooltipDelay: 200 },
+        nodes: {
+          shape: 'dot',
+          scaling: { min: 9, max: 28 },
+          font: { color: '#e3e1e9', size: 10, face: 'JetBrains Mono' },
+          borderWidth: 2,
+        },
+        edges: {
+          arrows: { to: { enabled: false } },
+          color: { color: '#3c494e', highlight: '#00d1ff', hover: '#4cd6ff' },
+          width: 1.5,
+          smooth: { type: 'continuous' },
+        },
+        interaction: {
+          hover: true,
+          tooltipDelay: 150,
+          hideEdgesOnDrag: true,
+          navigationButtons: false,
+        },
       };
 
-      if (network) {
-        network.destroy();
-      }
-
-      network = new Network(containerRef.current, { nodes, edges }, options);
-      network.on('click', p => {
-        const node = nodes.find(n => n.id === p.nodes[0]);
-        if (node) console.info('[Sentinel] Node clicked:', node);
-      });
+      networkRef.current = new Network(
+        containerRef.current,
+        { nodes: visNodes, edges: visEdges },
+        options
+      );
     };
 
     const init = async () => {
       try {
-        const url = `${API_URL}/api/graph/network`;
-        const res = await fetch(url);
-        let data;
-        try {
-          data = await res.json();
-        } catch (e) {
-          data = null;
-        }
+        const res = await fetchWithAuth(`${API_URL}/api/graph/network`);
+        const json = await res.json();
+        const envelope = json.data || json;
+        const graph = envelope.graph || envelope;
+        const nodes = graph.nodes || [];
+        const edges = graph.edges || [];
 
-        if (!res.ok) {
-          console.warn('[Sentinel] Network graph API returned:', res.status, res.statusText);
-        }
+        const useGraph = nodes.length ? graph : SAMPLE_GRAPH;
+        const useNodes = useGraph.nodes || [];
+        const useEdges = useGraph.edges || edges;
 
-        if (!data || !data.nodes || !data.nodes.length) {
-          throw new Error('empty data');
-        }
+        setSummary({
+          case_nodes: useNodes.filter(n => (n.type || '').toLowerCase() === 'case').length,
+          accused_nodes: useNodes.filter(n => (n.type || '').toLowerCase() === 'accused').length,
+          victim_nodes: useNodes.filter(n => (n.type || '').toLowerCase() === 'victim').length,
+          edge_count: useEdges.length,
+        });
 
-        const nodes = data.nodes.map(function (n) {
+        const visNodes = useNodes.map(n => {
+          const nodeType = (n.type || 'default').toLowerCase();
+          const isCase = nodeType === 'case';
+          const det = n.details || {};
           return {
             id: n.id,
             label: n.label || n.id,
-            group: n.group || 'default',
-            color: nodeColor(n.group),
-            font: { color: '#e2e8f0', size: 11 },
-            borderWidth: 1,
-            size: n.group === 'case' ? 20 : 14,
+            title: isCase
+              ? `<b>${n.label}</b><br/>Crime: ${det.CrimeHead || '—'}<br/>Group: ${det.CrimeGroup || '—'}`
+              : `<b>${n.label}</b><br/>Status: ${det.ArrestStatus || det.InjuryType || '—'}`,
+            color: nodeColor(nodeType),
+            size: isCase ? 20 : 12,
+            font: { color: '#e3e1e9', size: isCase ? 11 : 9 },
           };
         });
 
-        const edges = data.edges
-          ? data.edges.map(function (e) {
-              return {
-                from: e.from || e.source,
-                to: e.to || e.target,
-                color: { color: '#475569', highlight: '#38bdf8' },
-                width: 1.5,
-                smooth: { type: 'curvedCW', roundness: 0.15 },
-              };
-            })
-          : [];
+        const visEdges = useEdges.map((e, idx) => ({
+          id: `edge-${idx}`,
+          from: e.source,
+          to: e.target,
+          color: { color: '#2a3a4e', highlight: '#00d1ff' },
+        }));
 
-        buildGraph(nodes, edges);
+        buildGraph(visNodes, visEdges);
+        setError(null);
         setLoading(false);
       } catch (err) {
-        if (err.message !== 'empty data') {
-          console.error('[Sentinel] Network graph fetch error:', err.message);
-        }
-        console.info('[Sentinel] Using sample graph data as fallback');
-        setError(err.message === 'empty data' ? null : err.message);
+        console.error('[Sentinel] Network graph error:', err.message);
+        setError(err.message);
 
-        buildGraph(getSampleNodes(), getSampleEdges());
+        // Fallback graph build
+        setSummary({ case_nodes: 2, accused_nodes: 2, victim_nodes: 1, edge_count: 4 });
+        const visNodes = SAMPLE_GRAPH.nodes.map(n => ({
+          id: n.id,
+          label: n.label,
+          color: nodeColor(n.type),
+          size: n.type === 'case' ? 20 : 12,
+        }));
+        const visEdges = SAMPLE_GRAPH.edges.map((e, idx) => ({ id: `edge-${idx}`, from: e.source, to: e.target, color: { color: '#2a3a4e' } }));
+        buildGraph(visNodes, visEdges);
         setLoading(false);
       }
     };
 
     init();
-
     return () => {
       cancelled = true;
-      if (network) network.destroy();
+      if (networkRef.current) networkRef.current.destroy();
     };
   }, []);
 
@@ -112,95 +172,67 @@ export default function EntityNetworkGraph() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: 0.2 }}
-      className={cn(
-        'rounded-xl border border-border dark:border-border',
-        'bg-white dark:bg-card',
-        'shadow-glass-light dark:shadow-glass',
-        'backdrop-blur-md overflow-hidden'
-      )}
+      transition={{ duration: 0.4, delay: 0.3 }}
+      className="relative rounded-2xl border border-white/10 bg-[#121318]/90 backdrop-blur-xl shadow-2xl overflow-hidden"
     >
-      <div className="flex items-center justify-between px-5 py-4 border-b border-border dark:border-border">
+      {/* Top glowing accent line */}
+      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-purple-500/20 via-[#00d1ff] to-purple-500/20 opacity-90 z-20" />
+
+      {/* Header Bar */}
+      <div className="flex items-center justify-between px-6 py-4.5 border-b border-white/10 bg-black/20">
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-cyber-purple/20">
-            <Share2 className="w-4 h-4 text-cyber-purple" />
+          <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-purple-500/10 border border-purple-500/30 shadow-[0_0_12px_rgba(192,132,252,0.25)]">
+            <Share2 className="w-5 h-5 text-purple-400" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
-              Entity Network
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Force-directed graph
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-bold text-white font-sans tracking-tight">
+                Entity Knowledge Graph & Link Analysis
+              </h2>
+              <span className="px-2 py-0.5 rounded bg-purple-500/10 text-purple-400 text-[10px] font-mono font-bold uppercase tracking-wider border border-purple-500/20">
+                FORCE-ATLAS2
+              </span>
+            </div>
+            <p className="text-xs font-mono text-slate-400">
+              Inter-case relations, accused networks, and shared modus operandi
             </p>
           </div>
         </div>
-        {loading && (
-          <div className="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+
+        {summary && (
+          <div className="hidden sm:flex items-center gap-2 font-mono text-xs text-slate-300">
+            <span className="px-2.5 py-1 rounded-md bg-[#00d1ff]/10 border border-[#00d1ff]/30 text-[#00d1ff]">
+              <strong>{summary.case_nodes}</strong> Cases
+            </span>
+            <span className="px-2.5 py-1 rounded-md bg-rose-500/10 border border-rose-500/30 text-rose-400">
+              <strong>{summary.accused_nodes}</strong> Accused
+            </span>
+            <span className="px-2.5 py-1 rounded-md bg-[#39ff14]/10 border border-[#39ff14]/30 text-[#39ff14]">
+              <strong>{summary.edge_count}</strong> Links
+            </span>
+          </div>
         )}
       </div>
 
-      <div className="relative">
-        {error && (
-          <div className="absolute top-3 left-3 z-10 px-3 py-1.5 rounded-lg bg-cyber-red/20 border border-cyber-red/30 text-xs text-cyber-red">
-            {error}
+      {/* Graph Area */}
+      <div className="h-[460px] relative bg-[#0a0b10]">
+        {loading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-[#0a0b10]/80 z-20 backdrop-blur-sm">
+            <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#121318] border border-white/10 text-purple-400 font-mono text-xs">
+              <div className="w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+              <span>STABILIZING NETWORK PHYSICS...</span>
+            </div>
           </div>
         )}
-        <div ref={containerRef} className="h-[400px] bg-slate-950/50" />
+
+        {error && (
+          <div className="absolute top-4 left-4 z-20 px-3.5 py-2 rounded-xl bg-amber-500/15 border border-amber-500/30 text-xs font-mono text-amber-300 shadow-xl backdrop-blur-md">
+            ⚠️ Graph API Notice: {error} — Rendering cached graph topology
+          </div>
+        )}
+
+        <div ref={containerRef} className="h-full w-full" />
       </div>
     </motion.div>
   );
-}
-
-function nodeColor(group) {
-  if (group === 'case')
-    return {
-      background: '#1d4ed8',
-      border: '#3b82f6',
-      highlight: { background: '#2563eb', border: '#60a5fa' },
-    };
-  if (group === 'accused')
-    return {
-      background: '#991b1b',
-      border: '#ef4444',
-      highlight: { background: '#b91c1c', border: '#f87171' },
-    };
-  return {
-    background: '#1e293b',
-    border: '#475569',
-    highlight: { background: '#334155', border: '#64748b' },
-  };
-}
-
-function getSampleNodes() {
-  return [
-    { id: 'CASE-2024-001', label: 'CASE-2024-001', group: 'case' },
-    { id: 'CASE-2024-042', label: 'CASE-2024-042', group: 'case' },
-    { id: 'CASE-2024-089', label: 'CASE-2024-089', group: 'case' },
-    { id: 'CASE-2025-013', label: 'CASE-2025-013', group: 'case' },
-    { id: 'CASE-2025-027', label: 'CASE-2025-027', group: 'case' },
-    { id: 'ACTOR-dark_helix', label: 'dark_helix', group: 'accused' },
-    { id: 'ACTOR-phantom_ore', label: 'phantom_ore', group: 'accused' },
-    { id: 'ACTOR-nebula_kn1ght', label: 'nebula_kn1ght', group: 'accused' },
-    { id: 'ACTOR-cipher_v0id', label: 'cipher_v0id', group: 'accused' },
-    { id: 'ACTOR-silent_br0ker', label: 'silent_br0ker', group: 'accused' },
-    { id: 'IP-192.168.1.45', label: '192.168.1.45', group: 'ip' },
-    { id: 'IP-10.0.0.23', label: '10.0.0.23', group: 'ip' },
-  ];
-}
-
-function getSampleEdges() {
-  return [
-    { from: 'CASE-2024-001', to: 'ACTOR-dark_helix' },
-    { from: 'CASE-2024-001', to: 'IP-192.168.1.45' },
-    { from: 'CASE-2024-042', to: 'ACTOR-dark_helix' },
-    { from: 'CASE-2024-042', to: 'ACTOR-phantom_ore' },
-    { from: 'CASE-2024-089', to: 'ACTOR-phantom_ore' },
-    { from: 'CASE-2024-089', to: 'ACTOR-nebula_kn1ght' },
-    { from: 'CASE-2025-013', to: 'ACTOR-cipher_v0id' },
-    { from: 'CASE-2025-013', to: 'ACTOR-silent_br0ker' },
-    { from: 'CASE-2025-027', to: 'ACTOR-cipher_v0id' },
-    { from: 'CASE-2025-027', to: 'IP-10.0.0.23' },
-    { from: 'ACTOR-dark_helix', to: 'ACTOR-phantom_ore' },
-    { from: 'ACTOR-cipher_v0id', to: 'ACTOR-silent_br0ker' },
-  ];
 }

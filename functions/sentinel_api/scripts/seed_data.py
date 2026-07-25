@@ -177,6 +177,44 @@ def generate_mock_accused(case_ids, count=100, start_id=2031):
     return accused_list
 
 
+def generate_mock_victim(case_ids, count=50, start_id=301):
+    victim_list = []
+    injury_types = ["Financial Loss", "Identity Theft", "Data Extortion", "Phishing Trap", "Crypto Drain"]
+    for i in range(count):
+        victim_list.append({
+            "VictimID": f"VIC-2026-{start_id + i}",
+            "CaseID": random.choice(case_ids),
+            "Age": random.randint(21, 70),
+            "Gender": random.choice(["Male", "Female"]),
+            "InjuryType": random.choice(injury_types),
+        })
+    return victim_list
+
+
+
+def generate_mock_units():
+    units_list = []
+    unit_names = [
+        "UNIT-101 (Delhi NCR)", "UNIT-102 (Mumbai Central)", "UNIT-103 (Bengaluru Cyber)",
+        "UNIT-104 (Kolkata Metro)", "UNIT-105 (Hyderabad East)", "UNIT-106 (Pune Crime Branch)"
+    ]
+    districts = ["Delhi NCR", "Mumbai", "Bengaluru Urban", "Kolkata", "Hyderabad", "Pune"]
+    coords = [
+        (28.6139, 77.2090), (19.0760, 72.8777), (12.9716, 77.5946),
+        (22.5726, 88.3639), (17.3850, 78.4867), (18.5204, 73.8567)
+    ]
+    for idx, u in enumerate(unit_names):
+        lat, lng = coords[idx % len(coords)]
+        units_list.append({
+            "UnitID": u,
+            "UnitName": u,
+            "District": districts[idx % len(districts)],
+            "Latitude": str(lat),
+            "Longitude": str(lng),
+        })
+    return units_list
+
+
 # ---------------------------------------------------------------------------
 # Main Seeding Pipeline
 # ---------------------------------------------------------------------------
@@ -217,20 +255,30 @@ def run():
     accused_cols = get_table_columns(project_domain, project_id, "Accused", access_token)
     print(f"[INFO] Target Tables: CaseMaster ({len(case_cols)} cols), Accused ({len(accused_cols)} cols)\n")
 
-    # 3. Seed CaseMaster
+    # 3. Seed Units
+    units = generate_mock_units()
+    print(f"Attempting to seed {len(units)} Unit records...")
+    for u in units:
+        try:
+            insert_table_row(project_domain, project_id, "Unit", access_token, u)
+            print(f"  [+] Inserted Unit: {u['UnitID']}")
+        except Exception as err:
+            print(f"  [-] Note: Unit insert response: {err}")
+
+    # 4. Seed CaseMaster
     cases = generate_mock_cases(count=CASE_COUNT, start_id=START_CASE_NUM)
     inserted_case_ids = []
     
-    print(f"Attempting to seed {len(cases)} CaseMaster records...")
+    print(f"\nAttempting to seed {len(cases)} CaseMaster records...")
     for case in cases:
         try:
             insert_table_row(project_domain, project_id, "CaseMaster", access_token, case)
             inserted_case_ids.append(case["CaseID"])
             print(f"  [+] Inserted Case: {case['CaseID']} ({case['FIRNumber']})")
         except Exception as err:
-            print(f"  [-] Failed to insert Case {case['CaseID']}: {err}")
+            print(f"  [-] Note: Case {case['CaseID']}: {err}")
 
-    # 4. Seed Accused
+    # 5. Seed Accused
     if inserted_case_ids:
         accused_records = generate_mock_accused(inserted_case_ids, count=ACCUSED_COUNT, start_id=START_ACCUSED_NUM)
         print(f"\nAttempting to seed {len(accused_records)} Accused records...")
@@ -239,12 +287,20 @@ def run():
                 insert_table_row(project_domain, project_id, "Accused", access_token, accused)
                 print(f"  [+] Inserted Accused: {accused['Name']} -> {accused['CaseID']}")
             except Exception as err:
-                print(f"  [-] Failed to insert Accused {accused['Name']}: {err}")
-    else:
-        print("\n[!] Skipping Accused seeding as no CaseMaster records were inserted successfully.")
+                print(f"  [-] Note: Accused {accused['Name']}: {err}")
+
+        # 6. Seed Victims
+        victim_records = generate_mock_victim(inserted_case_ids, count=50, start_id=301)
+        print(f"\nAttempting to seed {len(victim_records)} Victim records...")
+        for victim in victim_records:
+            try:
+                insert_table_row(project_domain, project_id, "Victim", access_token, victim)
+                print(f"  [+] Inserted Victim: {victim['Name']} -> {victim['CaseID']}")
+            except Exception as err:
+                print(f"  [-] Note: Victim {victim['Name']}: {err}")
 
     print("\n==================================================")
-    print("            ADDITIONAL SEEDING COMPLETED           ")
+    print("            CATALYST DATA SEEDING COMPLETED       ")
     print("==================================================")
 
 

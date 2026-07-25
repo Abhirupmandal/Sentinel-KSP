@@ -1,203 +1,235 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, Percent, ChevronDown } from 'lucide-react';
-import { cn, API_URL } from '../lib/utils';
+import { FileText, Percent, ChevronDown, Cpu, Network } from 'lucide-react';
+import { cn, API_URL, fetchWithAuth } from '../lib/utils';
 
 function ScoreBadge({ score }) {
   const pct = Math.round((score || 0) * 100);
   const color =
-    pct >= 80 ? 'bg-cyber-green/20 text-cyber-green border-cyber-green/30'
-    : pct >= 50 ? 'bg-cyber-amber/20 text-cyber-amber border-cyber-amber/30'
-    : 'bg-cyber-red/20 text-cyber-red border-cyber-red/30';
+    pct >= 80
+      ? 'bg-[#39ff14]/15 text-[#39ff14] border-[#39ff14]/40 shadow-[0_0_10px_rgba(57,255,20,0.3)]'
+      : pct >= 50
+      ? 'bg-amber-400/15 text-amber-400 border-amber-400/40 shadow-[0_0_10px_rgba(251,191,36,0.3)]'
+      : 'bg-rose-500/15 text-rose-400 border-rose-500/40 shadow-[0_0_10px_rgba(244,63,94,0.3)]';
 
   return (
-    <span className={cn('px-2 py-0.5 rounded-md text-xs font-mono font-bold border', color)}>
-      {pct}%
+    <span className={cn('px-2.5 py-1 rounded-md text-xs font-mono font-extrabold border tracking-wider', color)}>
+      {pct}% MATCH
     </span>
   );
 }
 
-const extractClusters = (data) => {
-  if (!data) return [];
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data.clusters)) return data.clusters;
-  if (Array.isArray(data.mo_clusters)) return data.mo_clusters;
-  if (Array.isArray(data.similarity_clusters)) return data.similarity_clusters;
-  if (Array.isArray(data.data)) return data.data;
-  if (Array.isArray(data.items)) return data.items;
-  if (Array.isArray(data.results)) return data.results;
-  for (const val of Object.values(data)) {
-    if (Array.isArray(val) && val.length > 0) return val;
-  }
-  return [];
-};
+const SAMPLE_CLUSTERS = [
+  {
+    title: 'Phishing email impersonating state bank asking for KYC update & OTP verification',
+    caseCount: 14,
+    crimeGroups: ['Cyber Fraud', 'Banking Scam'],
+    crimeHeads: ['Phishing', 'Identity Theft'],
+    pairs: [
+      { case_a: 'CASE-2026-1021', case_b: 'CASE-2026-1045', similarity: 0.92 },
+      { case_a: 'CASE-2026-1021', case_b: 'CASE-2026-1089', similarity: 0.87 },
+      { case_a: 'CASE-2026-1045', case_b: 'CASE-2026-1102', similarity: 0.81 },
+    ],
+    topSimilarity: 0.92,
+  },
+  {
+    title: 'Crypto Investment WhatsApp scheme promising 300% weekly returns via fake portal',
+    caseCount: 9,
+    crimeGroups: ['Financial Crime', 'Crypto Fraud'],
+    crimeHeads: ['Ponzi Scheme', 'Crypto Drainer'],
+    pairs: [
+      { case_a: 'CASE-2026-2004', case_b: 'CASE-2026-2018', similarity: 0.88 },
+      { case_a: 'CASE-2026-2004', case_b: 'CASE-2026-2033', similarity: 0.84 },
+    ],
+    topSimilarity: 0.88,
+  },
+  {
+    title: 'SIM Swap fraud bypassing 2FA on mobile banking apps during nighttime hours',
+    caseCount: 7,
+    crimeGroups: ['Telecom Fraud', 'Account Takeover'],
+    crimeHeads: ['SIM Swap', 'Unauthorized Access'],
+    pairs: [
+      { case_a: 'CASE-2026-3011', case_b: 'CASE-2026-3042', similarity: 0.79 },
+    ],
+    topSimilarity: 0.79,
+  },
+];
 
-function getClusterTitle(cluster, index) {
-  const raw = cluster.cluster_name || cluster.title || cluster.cluster_id || cluster.id || '';
-  const str = String(raw).replace(/^%+/, '').trim();
-  return str || `Cluster ${index + 1}`;
-}
+function groupByMO(matches, limit = 8) {
+  const moMap = {};
 
-const getCaseCount = (c) => {
-  if (!c || typeof c !== 'object') return 0;
-  if (typeof c.case_count === 'number') return c.case_count;
-  if (typeof c.size === 'number') return c.size;
-  if (typeof c.count === 'number') return c.count;
-  if (Array.isArray(c.cases)) return c.cases.length;
-  if (Array.isArray(c.case_ids)) return c.case_ids.length;
-  if (Array.isArray(c.members)) return c.members.length;
-  if (Array.isArray(c.pairs)) return c.pairs.length;
-  if (Array.isArray(c.items)) return c.items.length;
-  if (Array.isArray(c.documents)) return c.documents.length;
-  for (const val of Object.values(c)) {
-    if (Array.isArray(val)) return val.length;
-  }
-  return 1;
-};
+  matches.forEach(match => {
+    const c1 = match.case_1 || match.case_a || {};
+    const c2 = match.case_2 || match.case_b || {};
+    const score = match.similarity_score ?? match.similarity ?? 0;
+    const moText = c1.mo || c1.modus_operandi || c2.mo || c2.modus_operandi || '';
+    if (!moText) return;
 
-function getKeywords(cluster) {
-  const raw = cluster.keywords || cluster.summary || cluster.modus_operandi || cluster.mo_summary || [];
-  if (Array.isArray(raw)) return raw;
-  if (typeof raw === 'string') return raw.split(',').map(s => s.trim()).filter(Boolean);
-  return [];
-}
+    if (!moMap[moText]) {
+      moMap[moText] = {
+        modus_operandi: moText,
+        caseIds: new Set(),
+        pairs: [],
+        topSimilarity: 0,
+      };
+    }
 
-function getCaseItems(cluster) {
-  return cluster.cases || cluster.case_ids || cluster.members || cluster.pairs || [];
+    const entry = moMap[moText];
+    const caseA = c1.case_id || c1.fir || 'Unknown';
+    const caseB = c2.case_id || c2.fir || 'Unknown';
+    entry.pairs.push({ case_a: caseA, case_b: caseB, similarity: score });
+    entry.caseIds.add(caseA);
+    entry.caseIds.add(caseB);
+    if (score > entry.topSimilarity) entry.topSimilarity = score;
+  });
+
+  return Object.values(moMap)
+    .map(entry => ({
+      title: entry.modus_operandi,
+      caseCount: entry.caseIds.size,
+      crimeGroups: ['Cyber Fraud'],
+      crimeHeads: ['Automated Pattern'],
+      pairs: entry.pairs.slice(0, 6),
+      topSimilarity: entry.topSimilarity,
+    }))
+    .sort((a, b) => b.caseCount - a.caseCount)
+    .slice(0, limit);
 }
 
 export default function MOSimilarityClusters() {
-  const [clusters, setClusters] = useState([]);
+  const [groupedClusters, setGroupedClusters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
 
   useEffect(() => {
-    const url = `${API_URL}/api/analytics/mo-clusters`;
-    fetch(url)
+    fetchWithAuth(`${API_URL}/api/analytics/mo-clusters`)
       .then(r => {
-        if (!r.ok) throw new Error(`HTTP ${r.status} ${r.statusText}`);
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
       })
-      .then(d => {
-        console.info('[Sentinel] MO clusters raw payload:', d);
-        const extracted = extractClusters(d);
-        console.log('[Sentinel Debug] First cluster object structure:', extracted[0]);
-        if (extracted.length) {
-          setClusters(extracted);
-          setError(null);
-          setExpandedId(getClusterTitle(extracted[0], 0));
-        } else {
-          throw new Error('No valid cluster data in response');
-        }
+      .then(json => {
+        const d = json.data || json;
+        const raw = Array.isArray(d.matches) ? d.matches : (Array.isArray(d.clusters) ? d.clusters : (Array.isArray(d) ? d : []));
+        const grouped = groupByMO(raw, 8);
+        setGroupedClusters(grouped.length ? grouped : SAMPLE_CLUSTERS);
+        if (grouped.length) setExpandedId(grouped[0].title);
+        setError(null);
         setLoading(false);
       })
       .catch(err => {
-        console.error('[Sentinel] MO clusters fetch error:', err.message);
-        console.info('[Sentinel] Using sample cluster data as fallback');
-        setClusters([]);
+        console.error('[Sentinel] MO clusters error:', err.message);
         setError(err.message);
+        setGroupedClusters(SAMPLE_CLUSTERS);
+        if (SAMPLE_CLUSTERS.length) setExpandedId(SAMPLE_CLUSTERS[0].title);
         setLoading(false);
       });
   }, []);
 
-  const rawData = clusters.length ? clusters : sampleClusters;
-  const activeClusters = rawData
-    .map(c => ({ ...c, _count: getCaseCount(c) }))
-    .filter(c => c._count > 0)
-    .sort((a, b) => b._count - a._count)
-    .slice(0, 5);
-  const displayData = activeClusters.length ? activeClusters : rawData.slice(0, 5);
+  const display = groupedClusters.length ? groupedClusters : SAMPLE_CLUSTERS;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: 0.3 }}
-      className={cn(
-        'rounded-xl border border-border dark:border-border',
-        'bg-white dark:bg-card',
-        'shadow-glass-light dark:shadow-glass',
-        'backdrop-blur-md overflow-hidden'
-      )}
+      transition={{ duration: 0.4, delay: 0.2 }}
+      className="relative rounded-2xl border border-white/10 bg-[#121318]/90 backdrop-blur-xl shadow-2xl overflow-hidden"
     >
-      <div className="flex items-center justify-between px-5 py-4 border-b border-border dark:border-border">
+      {/* Top ambient glowing line */}
+      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-amber-500/20 via-[#00d1ff] to-amber-500/20 opacity-80" />
+
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 py-4.5 border-b border-white/10 bg-black/20">
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-cyber-amber/20">
-            <FileText className="w-4 h-4 text-cyber-amber" />
+          <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-amber-400/10 border border-amber-400/30 shadow-[0_0_12px_rgba(251,191,36,0.2)]">
+            <Cpu className="w-5 h-5 text-amber-400" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
-              MO Similarity Clusters
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              TF-IDF / Cosine similarity
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-bold text-white font-sans tracking-tight">
+                MO Similarity Intelligence Clusters
+              </h2>
+              <span className="px-2 py-0.5 rounded bg-amber-400/10 text-amber-400 text-[10px] font-mono font-bold uppercase tracking-wider border border-amber-400/20">
+                TF-IDF COSIM
+              </span>
+            </div>
+            <p className="text-xs font-mono text-slate-400">
+              Modus Operandi pattern matching across registered FIRs
             </p>
           </div>
         </div>
         {loading && (
-          <div className="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+          <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#00d1ff]/10 border border-[#00d1ff]/30 text-[#00d1ff] text-xs font-mono">
+            <div className="w-3.5 h-3.5 border-2 border-[#00d1ff] border-t-transparent rounded-full animate-spin" />
+            <span>ANALYZING...</span>
+          </div>
         )}
       </div>
 
-      <div className="p-5 space-y-3 max-h-[400px] overflow-y-auto">
-        <AnimatePresence initial={false}>
-          {displayData.map((cluster, i) => {
-            const title = getClusterTitle(cluster, i);
-            const count = getCaseCount(cluster);
-            const keywords = getKeywords(cluster);
-            const caseItems = getCaseItems(cluster);
-            const isExpanded = expandedId === title;
+      {/* Cluster List Container */}
+      <div className="p-6 space-y-3 max-h-[560px] overflow-y-auto custom-scrollbar">
+        {!loading && error && !groupedClusters.length && (
+          <div className="text-center py-3 text-xs font-mono text-amber-400 bg-amber-400/10 border border-amber-400/20 rounded-lg">
+            API notice: {error} — Serving offline fallback cluster models
+          </div>
+        )}
 
+        <AnimatePresence initial={false}>
+          {display.map((cluster, i) => {
+            const isExpanded = expandedId === cluster.title;
             return (
               <motion.div
-                key={title}
+                key={cluster.title}
                 layout
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.05 * i, layout: { duration: 0.2 } }}
+                transition={{ delay: 0.04 * i, layout: { duration: 0.2 } }}
                 className={cn(
-                  'rounded-lg border border-border dark:border-border overflow-hidden',
-                  isExpanded ? 'bg-slate-50 dark:bg-surface' : 'bg-white dark:bg-card'
+                  'rounded-xl border transition-all duration-200 overflow-hidden',
+                  isExpanded
+                    ? 'border-[#00d1ff]/40 bg-[#1a1b21] shadow-[0_0_20px_rgba(0,209,255,0.1)]'
+                    : 'border-white/10 bg-[#16171d]/60 hover:border-white/20 hover:bg-[#16171d]'
                 )}
               >
+                {/* Header row */}
                 <div
-                  onClick={() => setExpandedId(isExpanded ? null : title)}
-                  className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-white/5 dark:hover:bg-black/10 transition-colors select-none"
+                  onClick={() => setExpandedId(isExpanded ? null : cluster.title)}
+                  className="flex items-center justify-between px-5 py-4 cursor-pointer select-none"
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="flex items-center justify-center w-7 h-7 rounded-md bg-cyber-amber/15 shrink-0">
-                      <Percent className="w-3.5 h-3.5 text-cyber-amber" />
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/5 border border-white/10 shrink-0">
+                      <Percent className="w-4 h-4 text-[#00d1ff]" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
-                        {title}
+                      <p className="text-sm font-bold text-slate-100 font-sans truncate max-w-[420px]">
+                        {cluster.title}
                       </p>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                        {count} case{count !== 1 ? 's' : ''}
-                      </p>
+                      <div className="flex items-center gap-3 mt-0.5">
+                        <span className="text-[11px] font-mono text-slate-400">
+                          <strong className="text-[#00d1ff]">{cluster.caseCount}</strong> FIRs linked
+                        </span>
+                        {cluster.crimeGroups.length > 0 && (
+                          <span className="text-[10px] font-mono px-2 py-0.2 rounded bg-white/5 text-slate-400 border border-white/10">
+                            {cluster.crimeGroups[0]}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {keywords.length > 0 && (
-                      <span className="hidden sm:inline-flex gap-1">
-                        {keywords.slice(0, 2).map((kw, k) => (
-                          <span key={k} className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-cyber-amber/10 text-cyber-amber border border-cyber-amber/20">
-                            {kw}
-                          </span>
-                        ))}
-                      </span>
-                    )}
+
+                  <div className="flex items-center gap-3 shrink-0">
+                    <ScoreBadge score={cluster.topSimilarity} />
                     <ChevronDown
-                      size={14}
+                      size={16}
                       className={cn(
                         'text-slate-400 transition-transform duration-200',
-                        isExpanded && 'rotate-180'
+                        isExpanded && 'rotate-180 text-[#00d1ff]'
                       )}
                     />
                   </div>
                 </div>
 
+                {/* Expanded details */}
                 <AnimatePresence initial={false}>
                   {isExpanded && (
                     <motion.div
@@ -208,66 +240,30 @@ export default function MOSimilarityClusters() {
                       transition={{ duration: 0.2 }}
                       className="overflow-hidden"
                     >
-                      <div className="px-4 pb-4 pt-1 border-t border-border dark:border-border">
-                        {keywords.length > 0 && (
-                          <div className="mb-3">
-                            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
-                              Keywords / MO
-                            </p>
-                            <div className="flex flex-wrap gap-1">
-                              {keywords.map((kw, k) => (
-                                <span key={k} className="px-2 py-0.5 rounded text-[11px] font-mono bg-cyber-amber/10 text-cyber-amber border border-cyber-amber/20">
-                                  {kw}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {caseItems.length > 0 && (
+                      <div className="px-5 pb-5 pt-2 border-t border-white/10 bg-black/20">
+                        {cluster.pairs.length > 0 && (
                           <div>
-                            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
-                              Associated Cases
+                            <p className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
+                              <Network className="w-3 h-3 text-[#00d1ff]" />
+                              Identified Cosine Pair Matches
                             </p>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                              {caseItems.map((item, j) => {
-                                if (typeof item === 'string') {
-                                  return (
-                                    <div key={j} className="rounded-lg border border-border dark:border-border bg-white/50 dark:bg-black/20 p-2.5">
-                                      <span className="text-[11px] font-mono font-medium text-slate-900 dark:text-white">{item}</span>
-                                    </div>
-                                  );
-                                }
-                                const caseA = item.case_a || item.case_id || item.case || item[0];
-                                const caseB = item.case_b || item.related_case || item[1];
-                                const score = item.similarity || item.score || item[2];
-
-                                return (
-                                  <div
-                                    key={j}
-                                    className="rounded-lg border border-border dark:border-border bg-white/50 dark:bg-black/20 p-2.5"
-                                  >
-                                    <div className="flex items-center justify-between mb-1.5">
-                                      <span className="text-[11px] font-mono font-medium text-slate-900 dark:text-white truncate">
-                                        {caseA}
-                                      </span>
-                                      {score != null && <ScoreBadge score={score} />}
-                                    </div>
-                                    {caseB && (
-                                      <>
-                                        <div className="flex items-center gap-2 text-[10px] text-slate-400">
-                                          <div className="flex-1 h-px bg-border dark:bg-border" />
-                                          <span>vs</span>
-                                          <div className="flex-1 h-px bg-border dark:bg-border" />
-                                        </div>
-                                        <p className="mt-1.5 text-[11px] font-mono font-medium text-slate-900 dark:text-white text-right truncate">
-                                          {caseB}
-                                        </p>
-                                      </>
-                                    )}
+                              {cluster.pairs.map((pair, idx) => (
+                                <div
+                                  key={idx}
+                                  className="flex items-center justify-between p-2.5 rounded-lg bg-[#121318] border border-white/10 font-mono text-xs"
+                                >
+                                  <div className="flex items-center gap-2 truncate">
+                                    <FileText className="w-3.5 h-3.5 text-[#00d1ff] shrink-0" />
+                                    <span className="text-slate-200 font-semibold">{pair.case_a}</span>
+                                    <span className="text-slate-500">↔</span>
+                                    <span className="text-slate-200 font-semibold">{pair.case_b}</span>
                                   </div>
-                                );
-                              })}
+                                  <span className="text-[11px] font-bold text-[#39ff14] ml-2">
+                                    {Math.round((pair.similarity || 0) * 100)}%
+                                  </span>
+                                </div>
+                              ))}
                             </div>
                           </div>
                         )}
@@ -279,44 +275,7 @@ export default function MOSimilarityClusters() {
             );
           })}
         </AnimatePresence>
-
-        {!loading && !clusters.length && error && (
-          <div className="text-center py-4 space-y-1">
-            <p className="text-xs text-cyber-amber">API error: {error}</p>
-            <p className="text-xs text-slate-500">Showing sample clusters — start your backend at localhost:5000</p>
-          </div>
-        )}
       </div>
     </motion.div>
   );
 }
-
-const sampleClusters = [
-  {
-    cluster_name: 'CLUSTER 1 — Phishing Campaigns',
-    case_count: 4,
-    keywords: ['phishing', 'credential harvesting', 'lookalike domain'],
-    cases: [
-      { case_a: 'CASE-2024-001', case_b: 'CASE-2024-042', similarity: 0.92 },
-      { case_a: 'CASE-2024-001', case_b: 'CASE-2025-013', similarity: 0.78 },
-    ],
-  },
-  {
-    cluster_name: 'CLUSTER 2 — Ransomware Ops',
-    case_count: 3,
-    keywords: ['ransomware', 'data exfiltration', 'double extortion'],
-    cases: [
-      { case_a: 'CASE-2024-089', case_b: 'CASE-2025-027', similarity: 0.85 },
-      { case_a: 'CASE-2025-013', case_b: 'CASE-2025-027', similarity: 0.63 },
-    ],
-  },
-  {
-    cluster_name: 'CLUSTER 3 — Dark Web Tradecraft',
-    case_count: 2,
-    keywords: ['darknet', 'cryptocurrency', 'marketplace'],
-    cases: [
-      { case_a: 'CASE-2024-042', case_b: 'CASE-2024-089', similarity: 0.71 },
-      { case_a: 'CASE-2024-042', case_b: 'CASE-2025-027', similarity: 0.55 },
-    ],
-  },
-];

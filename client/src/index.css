@@ -32,6 +32,47 @@
   .glass {
     @apply bg-white/70 dark:bg-card/70 backdrop-blur-md border border-white/20 dark:border-white/10 shadow-glass-light dark:shadow-glass;
   }
+
+  /* ── Sentinel Typography Scale ── */
+  .typo-page-title {
+    @apply text-xl font-semibold tracking-tight text-white;
+  }
+  .typo-page-subtitle {
+    @apply text-xs font-normal text-slate-400;
+  }
+  .typo-section-title {
+    @apply text-sm font-semibold text-white;
+  }
+  .typo-card-label {
+    @apply text-xs font-medium text-slate-400;
+  }
+  .typo-body {
+    @apply text-xs font-normal text-slate-300;
+  }
+  .typo-form-label {
+    @apply text-[11px] font-medium uppercase tracking-wider text-slate-300;
+  }
+  .typo-table-header {
+    @apply text-[10px] font-semibold uppercase tracking-wider text-slate-400;
+  }
+  .typo-button {
+    @apply text-xs font-semibold;
+  }
+  .typo-badge {
+    @apply text-[10px] font-semibold uppercase;
+  }
+  .typo-data-id {
+    @apply text-xs font-bold font-mono;
+  }
+  .typo-data-value {
+    @apply text-2xl font-bold font-mono tracking-tight;
+  }
+  .typo-meta {
+    @apply text-[10px] font-normal text-slate-500;
+  }
+  .typo-provenance {
+    @apply text-[11px] font-medium tracking-wide;
+  }
 }
 
 .leaflet-container {

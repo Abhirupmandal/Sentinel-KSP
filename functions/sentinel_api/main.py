@@ -23,10 +23,13 @@ _TARGET_DIR = os.path.dirname(os.path.abspath(__file__))
 if _TARGET_DIR not in sys.path:
     sys.path.insert(0, _TARGET_DIR)
 
+from routes.admin import admin_bp
 from routes.auth import auth_bp
+from routes.dashboard import dashboard_bp
 from routes.geospatial import geospatial_bp
 from routes.link_analysis import link_analysis_bp
 from routes.predictive import predictive_bp
+from middleware.exception_handler import register_exception_handlers
 
 logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO"),
@@ -164,10 +167,17 @@ def create_app():
     )
 
     # Register all feature blueprints.
+    app.register_blueprint(admin_bp)
     app.register_blueprint(auth_bp)
+    app.register_blueprint(dashboard_bp)
     app.register_blueprint(geospatial_bp)
+    app.register_blueprint(geospatial_bp, url_prefix="/api/spatial", name="spatial_bp")
     app.register_blueprint(link_analysis_bp)
+    app.register_blueprint(link_analysis_bp, url_prefix="/api/graph", name="graph_bp")
+    app.register_blueprint(link_analysis_bp, url_prefix="/api/analytics", name="analytics_bp")
     app.register_blueprint(predictive_bp)
+
+    register_exception_handlers(app)
 
     @app.route("/", methods=["GET"])
     def root_health():

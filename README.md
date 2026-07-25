@@ -272,6 +272,8 @@ sentinel-ksp/
 ├── requirements.txt
 ├── README.md
 ├── client/
+│   ├── docs/
+│   │   └── NAVBAR_SYSTEMS.md
 │   ├── package.json
 │   └── src/
 └── functions/
@@ -292,8 +294,10 @@ sentinel-ksp/
 
 ## Implementation Notes
 
+- Navbar systems and 14-module application shell specifications are documented in [client/docs/NAVBAR_SYSTEMS.md](client/docs/NAVBAR_SYSTEMS.md).
 - Flask app creation and blueprint registration live in [functions/sentinel_api/main.py](functions/sentinel_api/main.py).
 - REST-backed Catalyst ZCQL row fetching lives in [functions/sentinel_api/config.py](functions/sentinel_api/config.py).
 - DBSCAN hotspot clustering uses `sklearn.cluster.DBSCAN` with haversine distance over latitude/longitude coordinates.
 - Entity graph generation uses NetworkX and returns frontend-ready `nodes` and `edges` arrays.
 - MO clustering uses `TfidfVectorizer` and `cosine_similarity` from Scikit-Learn.
+
