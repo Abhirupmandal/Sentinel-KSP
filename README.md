@@ -29,6 +29,8 @@ Sentinel-KSP is a full-stack crime intelligence and cyber command platform built
 
 ## Architecture
 
+> 📖 **High-Level Design**: For the full enterprise architecture specification, computational formulas, sequence flows, and RBAC matrix, see [docs/HLD.md](docs/HLD.md) or the [embedded HLD section below](#high-level-design-hld).
+
 ```text
 ┌──────────────────────────────────────────────────────────────┐
 │                    React SPA (client/)                        │
@@ -155,8 +157,8 @@ The backend uses the Catalyst REST ZCQL API directly (`POST /baas/v1/project/{pi
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-org/sentinel-ksp.git
-cd sentinel-ksp
+git clone https://github.com/Abhirupmandal/Sentinel-KSP.git
+cd Sentinel-KSP
 ```
 
 ### 2. Environment Variables
@@ -318,13 +320,6 @@ require_auth → require_session → require_role → audit_action
 3. **require_role**: Verify officer role against required permission set
 4. **audit_action**: Record action to immutable audit log
 
-### Password Security
-
-- Passwords hashed with bcrypt (12-round salt)
-- Newly provisioned officers receive a temporary password with `TempPasswordFlag = true`
-- First login forces mandatory password change
-- Password change includes 10-step post-write verification: re-fetch from datastore, verify new hash matches, verify old password no longer matches, confirm `TempPasswordFlag = false`, confirm `AccountState = Active`
-
 ---
 
 ## Repository Layout
@@ -336,6 +331,8 @@ sentinel-ksp/
 ├── catalyst.json                 # Zoho Catalyst project manifest
 ├── requirements.txt              # Python dependencies
 ├── README.md
+├── docs/
+│   └── HLD.md                    # High-Level Design specification
 │
 ├── client/                       # React SPA
 │   ├── package.json
@@ -478,7 +475,7 @@ Produces an optimized production bundle in `client/build/`.
 
 ### Zoho Catalyst
 
-The backend is designed to run as a Zoho Catalyst Advanced Function. The `catalyst.json` manifest at the repository root defines the function entry point.
+The backend is designed to run as a Zoho Catalyst Advanced I/O Function. The `catalyst.json` manifest at the repository root defines the function entry point.
 
 1. Install the Catalyst CLI: `npm install -g zcatalyst-cli`
 2. Initialize the project: `catalyst init`
