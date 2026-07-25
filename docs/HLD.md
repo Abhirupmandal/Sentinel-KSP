@@ -12,9 +12,9 @@
 
 ### Key Architectural Principles
 
-1. **Zero-Trust Administrative & Session Governance**: Every incoming request undergoes mandatory, non-cached token verification, session active-state evaluation against live datastore records, 15-minute sliding window inactivity enforcement, and strict RBAC permission validation.
+1. **Zero-Trust Administrative & Session Governance**: Every incoming request undergoes mandatory non-cached token verification, live session active-state evaluation against Catalyst Data Store, 15-minute sliding window inactivity enforcement, and strict RBAC permission validation.
 2. **Institutional & Regulatory Integrity**: Strict audit logging of all administrative and analytical interactions. Cryptographic 10-step post-write hash verification on credential mutations.
-3. **Decoupled Monorepo Architecture**: Clean separation between a high-performance React 18 SPA client layer and a stateless Flask REST API hosted as a Zoho Catalyst Advanced Function.
+3. **Decoupled Monorepo Architecture**: Clean separation between a high-performance React 18 SPA client layer and a stateless Flask REST API hosted as a Zoho Catalyst Advanced I/O Function.
 4. **Resilient BaaS Data Engine**: Dual-mode data access layer using direct Zoho Catalyst BaaS REST ZCQL API endpoints with OAuth 2.0 token caching and automatic fallback to mock datastores in unconfigured environments.
 
 ---
@@ -23,67 +23,61 @@
 
 ```mermaid
 graph TD
-    subgraph Client_Tier ["Client Tier (React 18 SPA)"]
-        UI["User Interface Layer<br/>(Tailwind CSS / Lucide React)"]
-        State["State Management<br/>(AuthContext / ThemeContext / ToastContext)"]
-        Router["React Router v6<br/>Guarded Route Pipeline"]
-        Viz["Analytics Engine<br/>(Leaflet / vis-network / Recharts)"]
-        ClientAPI["HTTP Client Layer<br/>(fetchWithAuth Interceptor)"]
-
-        UI --> State
-        State --> Router
-        Router --> Viz
-        Viz --> ClientAPI
+    %% Roles & Access Workspaces
+    subgraph ClientDesk ["Command Center Client (Browser UI — React 18 SPA)"]
+        FieldUI["Field Investigator Workspace<br/>(Link Analysis & Offender Profiles)"]
+        AnalystUI["SCRB Data Analyst Desk<br/>(Geospatial Hotspots, Predictive Risk)"]
+        AdminUI["Cyber Security Admin Console<br/>(Session Governance, Audit Logs)"]
+        SuperUI["Command Supervisor Overview<br/>(Statewide Executive Dashboard)"]
     end
 
-    subgraph Gateway_Security_Tier ["Gateway & Security Pipeline (Flask Middleware)"]
-        Cors["CORS & Request Sanitizer"]
-        AuthMw["require_auth<br/>(JWT Token & Account State Check)"]
-        SessMw["require_session<br/>(15-Min Sliding Window & Active Check)"]
-        RbacMw["require_role<br/>(Least-Privilege RBAC Engine)"]
-        AuditMw["audit_action<br/>(Regulatory Log Interceptor)"]
-
-        ClientAPI -->|HTTPS / Bearer JWT| Cors
-        Cors --> AuthMw
-        AuthMw --> SessMw
-        SessMw --> RbacMw
-        RbacMw --> AuditMw
+    %% Routing & Security Pipeline
+    subgraph SecurityGateway ["Enterprise Security Gateway (Flask Middleware)"]
+        JWTAuth["JWT Authentication Interceptor & Account State Guard"]
+        SessGuard["15-Min Sliding Window Session Active State Evaluator"]
+        RBACEngine["Least-Privilege RBAC Permission Engine"]
+        AuditLogger["Regulatory Immutable Audit Interceptor"]
     end
 
-    subgraph Service_Tier ["Service & Computational Engine Layer"]
-        AuthSvc["AuthService"]
-        OfficerSvc["OfficerService"]
-        SessSvc["SessionService"]
-        AuditSvc["AuditService"]
-        GeoSvc["GeospatialService<br/>(DBSCAN Hotspots)"]
-        LinkSvc["LinkAnalysisService<br/>(NetworkX Graphs)"]
-        PredSvc["PredictiveService<br/>(TF-IDF / Cosine Similarity)"]
+    %% Application Core & Services
+    subgraph SentinelCore ["Sentinel API Production Core (Zoho Catalyst Advanced I/O)"]
+        subgraph APIBlueprints ["API Blueprints & Routing Layer"]
+            AuthBP["Auth & Profile Blueprints<br/>(/api/auth/*)"]
+            AdminBP["Cyber Command Admin Blueprints<br/>(/api/admin/*)"]
+            AnalyticsBP["Geospatial & Predictive Analytics<br/>(/api/spatial/*, /api/analytics/*)"]
+            GraphBP["Entity Link Analysis Graph Engine<br/>(/api/graph/*)"]
+        end
+        
+        subgraph ComputationalEngines ["Computational Analytics Engines"]
+            SpatialDBSCAN["Haversine DBSCAN Hotspot Clustering Engine"]
+            NetworkGraph["NetworkX Betweenness Centrality Link Analyzer"]
+            TFIDFEngine["TF-IDF & Cosine Similarity MO Matching Model"]
+        end
 
-        AuditMw --> AuthSvc
-        AuditMw --> OfficerSvc
-        AuditMw --> SessSvc
-        AuditMw --> AuditSvc
-        AuditMw --> GeoSvc
-        AuditMw --> LinkSvc
-        AuditMw --> PredSvc
+        subgraph DataAbstraction ["Data Abstraction & BaaS Client"]
+            RestZCQL["Direct Catalyst REST ZCQL Client Engine"]
+            OAuthManager["Zoho OAuth 2.0 Self-Client Token Cache"]
+        end
     end
 
-    subgraph Persistence_Tier ["Data Abstraction & BaaS Storage"]
-        Repo["Repository Layer<br/>(Officer, Session, Audit, Case, Accused)"]
-        CatClient["CatalystClient<br/>(REST ZCQL / OAuth Token Cache)"]
-        CatDataStore[("Zoho Catalyst Data Store<br/>(Cloud Relational BaaS)")]
-
-        AuthSvc --> Repo
-        OfficerSvc --> Repo
-        SessSvc --> Repo
-        AuditSvc --> Repo
-        GeoSvc --> Repo
-        LinkSvc --> Repo
-        PredSvc --> Repo
-
-        Repo --> CatClient
-        CatClient -->|REST ZCQL / JSON| CatDataStore
+    %% Persistence & Storage Layer
+    subgraph StorageBaaS ["Zoho Catalyst BaaS Cloud Data Store"]
+        OfficersTable["Officers Table<br/>(Credentials, Account State)"]
+        SessionsTable["ActiveSessions Table<br/>(Single Active Session Eviction)"]
+        AuditTable["AuditLogs Table<br/>(Immutable Operational Audit Trail)"]
+        CrimeTables["CaseMaster, Accused, Victim & Unit Master Tables"]
     end
+
+    %% Connections & Data Flow
+    FieldUI & AnalystUI & AdminUI & SuperUI --> JWTAuth
+    JWTAuth --> SessGuard
+    SessGuard --> RBACEngine
+    RBACEngine --> AuditLogger
+    AuditLogger --> AuthBP & AdminBP & AnalyticsBP & GraphBP
+    AnalyticsBP & GraphBP --> SpatialDBSCAN & NetworkGraph & TFIDFEngine
+    AuthBP & AdminBP & AnalyticsBP & GraphBP --> RestZCQL
+    RestZCQL --> OAuthManager
+    OAuthManager --> OfficersTable & SessionsTable & AuditTable & CrimeTables
 ```
 
 ---
@@ -218,41 +212,30 @@ Pairs exceeding threshold $\theta = 0.35$ are tagged as potential serial MO sign
 | PasswordHash          |       | LastActivityTime      |       | Action                |
 | TempPasswordFlag      |       | IPAddress             |       | ResourceType          |
 | PasswordLastChanged   |       | DeviceFingerprint     |       | ResourceID            |
-| Role                  |       +-----------------------+       | Inference (SUCCESS/   |
-| District              |                                       |            FAILURE)   |
-| Rank                  |                                       | IPAddress             |
-| Station               |                                       | DeviceFingerprint     |
-| Department            |                                       | ExtraMetadata (JSON)  |
-| AccountState          |                                       +-----------------------+
-| CreatedBy             |
-+-----------------------+
-            ^
-            |
-+-----------------------+       +-----------------------+       +-----------------------+
-|      CaseMaster       |       |        Accused        |       |        Victim         |
-+-----------------------+       +-----------------------+       +-----------------------+
-| ROWID (PK)            |       | ROWID (PK)            |       | ROWID (PK)            |
-| CaseID (UK)           |<------| AccusedID (UK)        |       | VictimID (UK)         |
-| FIRNumber             |       | CaseID (FK)           |       | CaseID (FK)           |
-| District              |       | Name                  |       | Name                  |
-| PoliceStation         |       | Age                   |       | Gender                |
-| Latitude              |       | Gender                |       | ContactNumber         |
-| Longitude             |       | ArrestStatus          |       +-----------------------+
-| OffenseDate           |       | KnownAliases          |
-| CrimeGroup            |       +-----------------------+
-| CrimeHead             |
-| ModusOperandi         |
-+-----------------------+
+| Role                  |       +-----------------------+       | Inference             |
+| District              |                                       | IPAddress             |
+| Rank                  |       +-----------------------+       | DeviceFingerprint     |
+| Station               |       |      CaseMaster       |       | ExtraMetadata (JSON)  |
+| Department            |       +-----------------------+       +-----------------------+
+| AccountState          |       | ROWID (PK)            |
+| CreatedBy             |       | CaseID (UK)           |
++-----------------------+       | FIRNumber             |       +-----------------------+
+                                | District              |       |        Accused        |
+                                | PoliceStation         |       +-----------------------+
+                                | Latitude / Longitude  |       | ROWID (PK)            |
+                                | OffenseDate           |       | AccusedID (UK)        |
+                                | CrimeGroup            |       | CaseID (FK)           |
+                                | CrimeHead             |       | Name / Age / Gender   |
+                                | ModusOperandi         |       | ArrestStatus          |
+                                +-----------------------+       | KnownAliases          |
+                                                                +-----------------------+
 ```
 
 ---
 
 ## 7. Verification & Build Integrity
 
-Sentinel-KSP undergoes dual-tier validation prior to release:
-
-1. **Backend Verification**: `python -m unittest discover -s functions/sentinel_api/tests -v`
-   - 21/21 Unit & Integration tests passing cleanly.
-   - Enforces zero demo-password fallback, single-session eviction, and cryptographic hash verification.
-2. **Frontend Compilation**: `cd client && npm run build`
-   - Production bundle compiles with zero syntax or module resolution errors.
+| Test Tier | Verification Command | Status / Standard |
+| :--- | :--- | :--- |
+| **Backend Unit Tests** | `python -m unittest discover -s functions/sentinel_api/tests -v` | **21/21 Passed** (Auth, RBAC, Eviction, Post-Write) |
+| **Frontend Production Build** | `cd client && npm run build` | **Clean Build** (0 errors, 0 warnings) |

@@ -1,580 +1,166 @@
-# Sentinel-KSP
+# Sentinel-KSP - Karnataka State Police Crime Intelligence & Cyber Command Platform
 
-> Karnataka State Police — Crime Intelligence & Cyber Command Platform
+> **A serious, operational, government-grade command interface and serverless intelligence platform for statewide crime analytics, geospatial hotspot monitoring, entity-link investigation, predictive risk scoring, and cyber command administration.**
 
-[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![Flask](https://img.shields.io/badge/Flask-API-000000?logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
-[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev/)
-[![Zoho Catalyst](https://img.shields.io/badge/Zoho-Catalyst-1F73C4?logo=zoho&logoColor=white)](https://www.zoho.com/catalyst/)
-[![Scikit-Learn](https://img.shields.io/badge/Scikit--Learn-ML-F7931E?logo=scikitlearn&logoColor=white)](https://scikit-learn.org/)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Python](https://img.shields.io/badge/python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![Flask](https://img.shields.io/badge/flask-000000?style=for-the-badge&logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
+[![React](https://img.shields.io/badge/react-%2320232d.style=for-the-badge&logo=react&logoColor=%2361DAFB)](https://react.dev/)
+[![Zoho Catalyst](https://img.shields.io/badge/Zoho_Catalyst-1F73C4?style=for-the-badge&logo=zoho&logoColor=white)](https://www.zoho.com/catalyst/)
+[![Scikit-Learn](https://img.shields.io/badge/Scikit--Learn-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white)](https://scikit-learn.org/)
+[![TailwindCSS](https://img.shields.io/badge/tailwindcss-%2338B2AC.style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg?style=for-the-badge)](LICENSE)
 
-Sentinel-KSP is a full-stack crime intelligence and cyber command platform built for the Karnataka State Police. It combines a React single-page application with a Flask backend deployed on Zoho Catalyst Advanced Functions, providing statewide crime analytics, geospatial hotspot detection, entity-link investigation, predictive risk scoring, and a complete officer lifecycle and session governance system.
+---
+
+## System Architecture Diagram
+
+Below is the complete architectural layout illustrating the data flow, security boundaries, authentication pipeline, analytics engines, and the Zoho Catalyst BaaS persistence layers:
+
+```mermaid
+graph TD
+    %% Roles & Access Workspaces
+    subgraph ClientDesk ["Command Center Client (Browser UI — React 18 SPA)"]
+        FieldUI["Field Investigator Workspace<br/>(Link Analysis & Offender Profiles)"]
+        AnalystUI["SCRB Data Analyst Desk<br/>(Geospatial Hotspots, Predictive Risk)"]
+        AdminUI["Cyber Security Admin Console<br/>(Session Governance, Audit Logs)"]
+        SuperUI["Command Supervisor Overview<br/>(Statewide Executive Dashboard)"]
+    end
+
+    %% Routing & Security Pipeline
+    subgraph SecurityGateway ["Enterprise Security Gateway (Flask Middleware)"]
+        JWTAuth["JWT Authentication Interceptor & Account State Guard"]
+        SessGuard["15-Min Sliding Window Session Active State Evaluator"]
+        RBACEngine["Least-Privilege RBAC Permission Engine"]
+        AuditLogger["Regulatory Immutable Audit Interceptor"]
+    end
+
+    %% Application Core & Services
+    subgraph SentinelCore ["Sentinel API Production Core (Zoho Catalyst Advanced I/O)"]
+        subgraph APIBlueprints ["API Blueprints & Routing Layer"]
+            AuthBP["Auth & Profile Blueprints<br/>(/api/auth/*)"]
+            AdminBP["Cyber Command Admin Blueprints<br/>(/api/admin/*)"]
+            AnalyticsBP["Geospatial & Predictive Analytics<br/>(/api/spatial/*, /api/analytics/*)"]
+            GraphBP["Entity Link Analysis Graph Engine<br/>(/api/graph/*)"]
+        end
+        
+        subgraph ComputationalEngines ["Computational Analytics Engines"]
+            SpatialDBSCAN["Haversine DBSCAN Hotspot Clustering Engine"]
+            NetworkGraph["NetworkX Betweenness Centrality Link Analyzer"]
+            TFIDFEngine["TF-IDF & Cosine Similarity MO Matching Model"]
+        end
+
+        subgraph DataAbstraction ["Data Abstraction & BaaS Client"]
+            RestZCQL["Direct Catalyst REST ZCQL Client Engine"]
+            OAuthManager["Zoho OAuth 2.0 Self-Client Token Cache"]
+        end
+    end
+
+    %% Persistence & Storage Layer
+    subgraph StorageBaaS ["Zoho Catalyst BaaS Cloud Data Store"]
+        OfficersTable["Officers Table<br/>(Credentials, Account State)"]
+        SessionsTable["ActiveSessions Table<br/>(Single Active Session Eviction)"]
+        AuditTable["AuditLogs Table<br/>(Immutable Operational Audit Trail)"]
+        CrimeTables["CaseMaster, Accused, Victim & Unit Master Tables"]
+    end
+
+    %% Connections & Data Flow
+    FieldUI & AnalystUI & AdminUI & SuperUI --> JWTAuth
+    JWTAuth --> SessGuard
+    SessGuard --> RBACEngine
+    RBACEngine --> AuditLogger
+    AuditLogger --> AuthBP & AdminBP & AnalyticsBP & GraphBP
+    AnalyticsBP & GraphBP --> SpatialDBSCAN & NetworkGraph & TFIDFEngine
+    AuthBP & AdminBP & AnalyticsBP & GraphBP --> RestZCQL
+    RestZCQL --> OAuthManager
+    OAuthManager --> OfficersTable & SessionsTable & AuditTable & CrimeTables
+```
+
+---
+
+## Complete Technology Stack & Choices
+
+| Layer | Technology | Selection Rationale & Cost Benefits |
+| :--- | :--- | :--- |
+| **Frontend Framework** | **React 18 SPA + React Router v6** | Single-page architecture delivers instantaneous view switching between command center modules, while client-side route guards enforce role-based workspace boundaries. |
+| **Styling & UI System** | **Tailwind CSS + Framer Motion** | Institutional, government-grade dark mode interface built with cohesive visual hierarchy (*Inter* UI font, *JetBrains Mono* data font) and smooth sub-second animations. |
+| **Visual Analytics** | **Leaflet, vis-network, Recharts** | Interactive GeoJSON map layers for hotspot visualization, force-directed entity graphs for criminal network exploration, and real-time trend charts. |
+| **Backend API** | **Flask (Python 3.11)** | Lightweight modular framework wrapped as a serverless Zoho Catalyst Advanced I/O Function, delivering low latency and zero idle infrastructure costs. |
+| **Auth & Governance** | **PyJWT + bcrypt + Middleware Pipeline** | 8-hour HMAC-SHA256 JWT tokens, 12-round bcrypt hashing, single active session enforcement with atomic eviction, and 15-minute sliding inactivity timeouts. |
+| **Geospatial Engine** | **Scikit-Learn (DBSCAN)** | Haversine distance clustering on latitude/longitude coordinates generates precise spatial crime hotspots ($\varepsilon = 2.0\text{km}, \text{MinPts} = 3$). |
+| **Link Analytics Engine** | **NetworkX** | Constructs multi-jurisdictional suspect-to-case networks and calculates betweenness centrality ($C_B(v)$) to isolate major criminal hubs. |
+| **Predictive Analytics** | **Scikit-Learn (TF-IDF + Cosine Similarity)** | Vectorizes modus operandi (MO) incident text to discover cross-station serial crime signatures above similarity threshold $\theta = 0.35$. |
+| **Cloud Data BaaS** | **Zoho Catalyst Data Store (REST ZCQL)** | Relational BaaS queried directly via authenticated REST ZCQL endpoints (`https://api.catalyst.zoho.in/baas/v1/project/{id}/query`), bypassing SDK SSL quirks. |
 
 ---
 
 ## Table of Contents
 
-- [Architecture](#architecture)
-- [Modules](#modules)
-- [Tech Stack](#tech-stack)
-- [Getting Started](#getting-started)
+- [System Architecture Diagram](#system-architecture-diagram)
+- [Complete Technology Stack & Choices](#complete-technology-stack--choices)
+- [High-Level Design (HLD) Specification](#high-level-design-hld-specification)
+  - [HLD 1 — Executive Summary & System Philosophy](#hld-1--executive-summary--system-philosophy)
+  - [HLD 2 — Multi-Tier System Architecture](#hld-2--multi-tier-system-architecture)
+  - [HLD 3 — Authentication, Session Lifecycle & Cryptographic Verification](#hld-3--authentication-session-lifecycle--cryptographic-verification)
+  - [HLD 4 — Role-Based Access Control (RBAC) Matrix](#hld-4--role-based-access-control-rbac-matrix)
+  - [HLD 5 — Computational Analytics Formulations](#hld-5--computational-analytics-formulations)
+  - [HLD 6 — Datastore Schema Architecture](#hld-6--datastore-schema-architecture)
+  - [HLD 7 — Verification & Build Integrity](#hld-7--verification--build-integrity)
+- [Modules Overview](#modules-overview)
+- [Getting Started & Local Execution](#getting-started--local-execution)
 - [API Reference](#api-reference)
-- [RBAC & Security Model](#rbac--security-model)
 - [Repository Layout](#repository-layout)
-- [Testing](#testing)
-- [Deployment](#deployment)
-- [High-Level Design (HLD)](#high-level-design-hld)
+- [License](#license)
 
 ---
 
-## Architecture
+## High-Level Design (HLD) Specification
 
-> 📖 **High-Level Design**: For the full enterprise architecture specification, computational formulas, sequence flows, and RBAC matrix, see [docs/HLD.md](docs/HLD.md) or the [embedded HLD section below](#high-level-design-hld).
+> **Official Design Document**: Available as a dedicated file in [`docs/HLD.md`](docs/HLD.md) and mirrored below.
 
-```text
-┌──────────────────────────────────────────────────────────────┐
-│                    React SPA (client/)                        │
-│  AuthContext → Guards → AppShell → Permission-gated Pages    │
-└────────────────────────┬─────────────────────────────────────┘
-                         │ HTTP JSON (Bearer JWT)
-                         ▼
-┌──────────────────────────────────────────────────────────────┐
-│              Flask API (functions/sentinel_api/)              │
-│                                                              │
-│  Middleware Stack:                                            │
-│    require_auth → require_session → require_role → audit     │
-│                                                              │
-│  Route Blueprints:                                           │
-│    auth_bp · admin_bp · dashboard_bp · geospatial_bp         │
-│    link_analysis_bp · predictive_bp · health_bp              │
-│                                                              │
-│  Service Layer:                                              │
-│    AuthService · OfficerService · SessionService             │
-│    AuditService · DashboardService · GeospatialService       │
-│    LinkAnalysisService · PredictiveService                   │
-│                                                              │
-│  Repository Layer:                                           │
-│    OfficerRepository · SessionRepository · AuditRepository   │
-│    CaseRepository · AccusedRepository · VictimRepository     │
-│                                                              │
-│  Core:                                                       │
-│    CatalystClient · JWTManager · PasswordManager             │
-│    RBAC PermissionEngine · Structured Logger                 │
-└────────────────────────┬─────────────────────────────────────┘
-                         │ REST ZCQL / BaaS API
-                         ▼
-┌──────────────────────────────────────────────────────────────┐
-│             Zoho Catalyst Data Store (BaaS)                  │
-│                                                              │
-│  Tables: Officers · ActiveSessions · AuditLogs              │
-│          CaseMaster · Accused · Victim · Unit                │
-└──────────────────────────────────────────────────────────────┘
-```
+### HLD 1 — Executive Summary & System Philosophy
 
-The backend uses the Catalyst REST ZCQL API directly (`POST /baas/v1/project/{pid}/query`) instead of the SDK's ZCQL executor, which routes through `accounts.localzoho.com` and has SSL issues in local development. The REST endpoint uses `accounts.zoho.in` and works reliably in both local and deployed environments.
+**Sentinel-KSP** is designed as a mission-critical operational intelligence platform for the Karnataka State Police. The platform operates on four non-negotiable architectural pillars:
 
----
-
-## Modules
-
-### Crime Intelligence & Analytics
-
-| Module | Description |
-|--------|-------------|
-| **Statewide Dashboard** | Aggregated KPIs across all Karnataka districts — total cases, clearance rates, crime group breakdowns, year-over-year trends. |
-| **Geospatial Intelligence** | DBSCAN spatial clustering over geocoded FIR coordinates. Produces GeoJSON hotspot maps with cluster density metadata. |
-| **District Drilldown** | Police station jurisdiction volume breakdown and unit-level crime analytics. |
-| **Predictive Risk Scoring** | Composite threat risk index per district using weighted crime velocity, clearance deficit, and historical trend factors. |
-| **Behavioral Anomaly Detection** | Statistical anomaly detection across incident velocity and MO signature patterns. |
-| **Socio-Economic Correlation** | Demographic overlay mapping crime density against population, literacy, and employment data. |
-
-### Link Analysis & Investigation
-
-| Module | Description |
-|--------|-------------|
-| **Entity Network Graph** | Force-directed graph connecting suspects, cases, and police units across jurisdictions. Uses NetworkX betweenness centrality to identify high-importance hubs. |
-| **Repeat Offender Profiles** | Consolidated criminal footprint joining FIR records across multiple police jurisdictions. |
-| **MO Signature Matching** | TF-IDF vectorization with cosine similarity to find cases sharing similar modus operandi patterns. |
-
-### Cyber Command Center (Admin)
-
-| Module | Description |
-|--------|-------------|
-| **Officer Management** | Create, lock, unlock, disable officer accounts. Admin-initiated password resets with temporary credential generation. |
-| **Active Session Governance** | Real-time monitoring of all authenticated sessions. Force logout capability. |
-| **Immutable Audit Logs** | Regulatory-grade audit trail for all authentication events, administrative actions, and data access. |
-| **Security Incidents** | Automated threat detection alerts for failed login spikes, suspicious devices, and rate-limit violations. |
-| **Emergency Access** | Temporary emergency access grants to classified case data with mandatory justification logging. |
-
----
-
-## Tech Stack
-
-### Frontend
-
-| Technology | Purpose |
-|------------|---------|
-| React 18 | SPA framework |
-| React Router v6 | Client-side routing with nested layout guards |
-| Tailwind CSS | Utility-first styling |
-| Framer Motion | Page transitions and micro-animations |
-| Recharts | Chart and graph visualizations |
-| Leaflet | Interactive GeoJSON map rendering |
-| vis-network | Force-directed entity network graphs |
-| Lucide React | Icon system |
-
-### Backend
-
-| Technology | Purpose |
-|------------|---------|
-| Flask | HTTP API framework |
-| Flask-CORS | Cross-origin request handling |
-| Zoho Catalyst SDK | Cloud BaaS integration |
-| bcrypt | Password hashing (12-round salt) |
-| PyJWT | JWT token issuance and verification |
-| scikit-learn | DBSCAN clustering, TF-IDF vectorization, cosine similarity |
-| NetworkX | Graph construction and centrality analysis |
-| NumPy / Pandas | Numerical computation and data transformation |
-
-### Infrastructure
-
-| Technology | Purpose |
-|------------|---------|
-| Zoho Catalyst Advanced Functions | Serverless backend hosting |
-| Zoho Catalyst Data Store | Cloud relational datastore (BaaS) |
-| Zoho OAuth 2.0 (Self Client) | API authentication for Catalyst REST endpoints |
-
----
-
-## Getting Started
-
-### Prerequisites
-
-- Python 3.10+
-- Node.js 18+ and npm
-- Zoho Catalyst project with Data Store tables provisioned
-
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/Abhirupmandal/Sentinel-KSP.git
-cd Sentinel-KSP
-```
-
-### 2. Environment Variables
-
-Create a `.env` file at the repository root:
-
-```env
-CATALYST_PROJECT_ID=your_project_id
-CATALYST_PROJECT_KEY=your_project_key
-ZC_SDK_CLIENT_ID=your_self_client_id
-ZC_SDK_CLIENT_SECRET=your_self_client_secret
-ZC_SDK_REFRESH_TOKEN=your_self_client_refresh_token
-CATALYST_ENV=Development
-JWT_SECRET_KEY=your_jwt_secret
-```
-
-| Variable | Purpose |
-|----------|---------|
-| `CATALYST_PROJECT_ID` | Zoho Catalyst project ID for REST query URLs |
-| `CATALYST_PROJECT_KEY` | Catalyst project key for SDK initialization |
-| `ZC_SDK_CLIENT_ID` | Zoho OAuth self-client ID |
-| `ZC_SDK_CLIENT_SECRET` | Zoho OAuth self-client secret |
-| `ZC_SDK_REFRESH_TOKEN` | Refresh token for generating OAuth access tokens |
-| `CATALYST_ENV` | Catalyst environment header (`Development` or `Production`) |
-| `JWT_SECRET_KEY` | Secret key for JWT token signing and verification |
-
-### 3. Install Backend Dependencies
-
-```bash
-pip install -r requirements.txt
-pip install bcrypt pyjwt
-```
-
-### 4. Install Frontend Dependencies
-
-```bash
-cd client
-npm install
-cd ..
-```
-
-### 5. Start the Backend
-
-```bash
-python functions/sentinel_api/main.py
-```
-
-The Flask server binds to `http://localhost:5000`.
-
-### 6. Start the Frontend
-
-```bash
-cd client
-npm start
-```
-
-The React dev server runs on `http://localhost:3000` and proxies API requests to the backend.
-
----
-
-## API Reference
-
-### Authentication (`/api/auth`)
-
-| Method | Route | Auth | Description |
-|--------|-------|------|-------------|
-| POST | `/api/auth/login` | Public | Authenticate officer, issue JWT |
-| POST | `/api/auth/logout` | JWT + Session | Terminate active session |
-| GET | `/api/auth/profile` | JWT + Session | Retrieve authenticated officer profile |
-| GET | `/api/auth/me` | JWT + Session | Alias for `/profile` |
-| PUT | `/api/auth/change-password` | JWT + Session | Change officer password |
-
-### Admin — Cyber Command Center (`/api/admin`)
-
-All admin endpoints require `CyberSecurityAdministrator` role.
-
-| Method | Route | Description |
-|--------|-------|-------------|
-| POST | `/api/admin/create-user` | Provision new officer account |
-| POST | `/api/admin/reset-password` | Admin-initiated password reset |
-| POST | `/api/admin/lock-account` | Lock officer account |
-| POST | `/api/admin/unlock-account` | Unlock officer account |
-| POST | `/api/admin/force-logout` | Terminate officer session |
-| GET | `/api/admin/active-sessions` | List all active sessions |
-| GET | `/api/admin/audit-logs` | Query immutable audit trail |
-| POST | `/api/admin/emergency-access` | Grant emergency access |
-| POST | `/api/admin/emergency-access/end` | Revoke emergency access |
-| GET | `/api/admin/security-incidents` | List security incidents |
-| GET | `/api/admin/officers` | List all officers (REST alias) |
-| POST | `/api/admin/officers` | Create officer (REST alias) |
-
-### Dashboard (`/api/dashboard`)
-
-| Method | Route | Permission | Description |
-|--------|-------|------------|-------------|
-| GET | `/api/dashboard/stats` | `DASHBOARD_VIEW` | Statewide crime KPIs and aggregations |
-
-### Geospatial Intelligence (`/api/spatial`)
-
-| Method | Route | Permission | Description |
-|--------|-------|------------|-------------|
-| GET | `/api/spatial/hotspots` | `GEOSPATIAL_VIEW` | DBSCAN clustered GeoJSON hotspot data |
-| GET | `/api/spatial/district-drilldown` | `GEOSPATIAL_VIEW` | District and station-level breakdowns |
-| GET | `/api/spatial/spike-detection` | `GEOSPATIAL_VIEW` | Crime velocity spike detection |
-
-### Link Analysis (`/api/graph`)
-
-| Method | Route | Permission | Description |
-|--------|-------|------------|-------------|
-| GET | `/api/graph/network` | `LINK_ANALYSIS_VIEW` | Entity network graph (nodes + edges) |
-| GET | `/api/graph/offender/:id` | `LINK_ANALYSIS_VIEW` | Repeat offender criminal profile |
-
-### Predictive Analytics (`/api/analytics`)
-
-| Method | Route | Permission | Description |
-|--------|-------|------------|-------------|
-| GET | `/api/analytics/mo-clusters` | `PREDICTIVE_VIEW` | MO signature similarity matching |
-| GET | `/api/analytics/risk-scores` | `PREDICTIVE_VIEW` | District risk scoring framework |
-| GET | `/api/analytics/anomalies` | `PREDICTIVE_VIEW` | Behavioral anomaly detection |
-| GET | `/api/analytics/socio-economic` | `PREDICTIVE_VIEW` | Socio-economic correlation data |
-
-### Health
-
-| Method | Route | Description |
-|--------|-------|-------------|
-| GET | `/` | Liveness probe |
-| GET | `/api/health` | Health check with timestamp |
-
----
-
-## RBAC & Security Model
-
-### Roles
-
-| Role | Scope |
-|------|-------|
-| **CyberSecurityAdministrator** | Full platform access — officer lifecycle, session governance, audit review, emergency access, all analytics and investigation modules |
-| **SCRBDataAnalyst** | Intelligence dashboards, geospatial tools, predictive analytics, case read/write |
-| **FieldInvestigator** | Link analysis workspaces, offender profiles, case read |
-| **CommandSupervisor** | Executive dashboard overviews |
-| **SystemAdministrator** | Infrastructure monitoring (no business permissions — empty set per least-privilege) |
-
-### Authentication Flow
-
-1. Officer submits credentials (OfficerID or EmployeeID + password)
-2. Backend verifies password against bcrypt hash stored in Catalyst Data Store
-3. Backend enforces single active session policy (previous sessions are evicted)
-4. JWT issued with `sub` (OfficerID), `sid` (SessionID), and `role` claims
-5. Every authenticated request validates JWT → verifies active session in Catalyst → checks 15-minute sliding inactivity timeout → updates `LastActivityTime`
-
-### Middleware Stack (per request)
-
-```
-require_auth → require_session → require_role → audit_action
-```
-
-1. **require_auth**: Decode JWT, verify signature/expiry, fetch officer from Catalyst, check account state
-2. **require_session**: Validate session is active in Catalyst, enforce 15-minute inactivity timeout, update `LastActivityTime`
-3. **require_role**: Verify officer role against required permission set
-4. **audit_action**: Record action to immutable audit log
-
----
-
-## Repository Layout
-
-```text
-sentinel-ksp/
-├── .env                          # Environment variables (not committed)
-├── .gitignore
-├── catalyst.json                 # Zoho Catalyst project manifest
-├── requirements.txt              # Python dependencies
-├── README.md
-├── docs/
-│   └── HLD.md                    # High-Level Design specification
-│
-├── client/                       # React SPA
-│   ├── package.json
-│   ├── public/
-│   ├── docs/
-│   │   └── NAVBAR_SYSTEMS.md
-│   └── src/
-│       ├── App.js                # Route definitions with permission guards
-│       ├── index.css             # Centralized typography and design tokens
-│       ├── context/
-│       │   ├── AuthContext.js     # Auth state management
-│       │   ├── ThemeContext.js
-│       │   └── ToastContext.js
-│       ├── components/
-│       │   ├── app-shell/        # AppShell, Sidebar, TopBar, StatusBar
-│       │   ├── guards/           # AuthGuard, AccountStateGuard, TempPasswordGuard, PermissionGuard
-│       │   ├── shared/           # PageLoader, EmptyState, ErrorBoundary
-│       │   ├── NavHeader.js
-│       │   ├── StatsBar.js
-│       │   ├── SpatialHotspots.js
-│       │   ├── EntityNetworkGraph.js
-│       │   └── MOSimilarityClusters.js
-│       ├── pages/
-│       │   ├── LoginPage.js
-│       │   ├── ProfilePage.js
-│       │   ├── public/           # ChangePasswordPage, SessionExpired, Unauthorized, AccountRestricted
-│       │   ├── admin/            # OfficerMgmt, ActiveSessions, AuditLogs, SecurityIncidents, EmergencyAccess
-│       │   ├── analytics/        # Dashboard, SpatialHotspots, DistrictDrilldown, RiskScore, Anomaly, SocioEconomic
-│       │   └── investigation/    # NetworkGraph, OffenderProfile, MOMatching
-│       └── lib/
-│           ├── api/              # authClient, adminClient, geospatialClient, linkAnalysisClient, predictiveClient
-│           ├── permissions.js    # Frontend RBAC permission mirror
-│           ├── navigation.js     # Role-based navigation config
-│           └── utils.js          # fetchWithAuth, cn()
-│
-└── functions/
-    └── sentinel_api/             # Flask backend
-        ├── main.py               # Application factory, blueprint registration, error handlers
-        ├── config.py             # Catalyst SDK init, REST ZCQL, OAuth token management
-        ├── catalyst-config.json
-        ├── constants/
-        │   ├── account_states.py # AccountState enum (Active, Pending, Locked, Disabled, Retired)
-        │   ├── audit_actions.py  # AuditAction enum
-        │   ├── permissions.py    # Permission enum (OFFICER_CREATE, SESSION_VIEW, DASHBOARD_VIEW, etc.)
-        │   ├── roles.py          # Role enum
-        │   ├── ranks.py          # KSP rank hierarchy
-        │   └── departments.py    # KSP department list
-        ├── core/
-        │   ├── catalyst_client.py  # Thin wrapper around Catalyst REST ZCQL and datastore operations
-        │   ├── jwt_manager.py      # JWT issuance and verification
-        │   ├── password_manager.py # bcrypt hashing and verification
-        │   ├── permissions.py      # Role-to-permission mapping (PRD-aligned, least-privilege)
-        │   ├── exceptions.py       # Custom exception hierarchy
-        │   ├── responses.py        # Standardized JSON response helpers
-        │   ├── logger.py           # Structured JSON logger
-        │   └── device_fingerprint.py
-        ├── middleware/
-        │   ├── auth_middleware.py   # JWT verification, account state check
-        │   ├── session.py          # Active session validation, 15-min sliding timeout
-        │   ├── rbac.py             # Role-based access control enforcement
-        │   ├── audit.py            # Automatic audit log recording
-        │   └── exception_handler.py
-        ├── repositories/
-        │   ├── officer_repository.py  # Officers table CRUD via Catalyst REST
-        │   ├── session_repository.py  # ActiveSessions table CRUD
-        │   ├── audit_repository.py    # AuditLogs table insert/query
-        │   ├── case_repository.py
-        │   ├── accused_repository.py
-        │   ├── victim_repository.py
-        │   └── unit_repository.py
-        ├── services/
-        │   ├── auth_service.py         # Login, logout, password change with post-write verification
-        │   ├── officer_service.py      # Officer provisioning, lock/unlock, admin password reset
-        │   ├── session_service.py      # Session creation, eviction, validation, expiry
-        │   ├── audit_service.py        # Centralized audit event recording
-        │   ├── dashboard_service.py    # Statewide KPI aggregation
-        │   ├── geospatial_service.py   # DBSCAN clustering, spike detection, district drilldown
-        │   ├── link_analysis_service.py # NetworkX graph construction, offender profiles
-        │   ├── predictive_service.py   # Risk scoring, MO similarity, anomaly detection
-        │   ├── emergency_service.py    # Emergency access grant/revoke
-        │   └── security_service.py     # Security incident management
-        ├── schemas/
-        │   ├── auth_schema.py      # Login and password change validation
-        │   └── officer_schema.py   # Officer creation and admin action validation
-        ├── routes/
-        │   ├── auth.py             # /api/auth/* endpoints
-        │   ├── admin.py            # /api/admin/* endpoints (CyberSecurityAdmin only)
-        │   ├── dashboard.py        # /api/dashboard/* endpoints
-        │   ├── geospatial.py       # /api/spatial/* endpoints
-        │   ├── link_analysis.py    # /api/graph/* endpoints
-        │   ├── predictive.py       # /api/analytics/* endpoints
-        │   └── health.py           # Health probe endpoints
-        ├── scripts/
-        │   ├── seed_data.py        # Mock data generation for local development
-        │   ├── create_admin.py     # Bootstrap admin account script
-        │   └── create_test_users.py
-        ├── tests/
-        │   ├── test_auth.py              # Auth flow and credential verification tests
-        │   ├── test_officer_provisioning.py # Officer creation and validation tests
-        │   ├── test_rbac.py              # Role-based access control tests
-        │   ├── test_repository.py        # Repository layer integration tests
-        │   └── test_services.py          # Service layer unit tests
-        └── utils/
-            ├── id_generator.py
-            └── validators.py
-```
-
----
-
-## Testing
-
-### Backend Unit Tests
-
-Run the full test suite (21 tests) from the repository root:
-
-```bash
-python -m unittest discover -s functions/sentinel_api/tests -v
-```
-
-Test coverage includes:
-
-- **Authentication**: Login success/failure, password change with post-write hash verification, demo password rejection after credential change, identical password rejection
-- **RBAC**: Admin role access grant, unauthorized role denial on admin routes
-- **Officer Provisioning**: Successful creation, duplicate EmployeeID rejection, missing field validation
-- **Repositories**: Officer password state update payload verification, case/accused/victim/unit query correctness
-- **Services**: Session batch expiry, emergency access field validation
-
-### Frontend Build Verification
-
-```bash
-cd client
-npm run build
-```
-
-Produces an optimized production bundle in `client/build/`.
-
----
-
-## Deployment
-
-### Zoho Catalyst
-
-The backend is designed to run as a Zoho Catalyst Advanced I/O Function. The `catalyst.json` manifest at the repository root defines the function entry point.
-
-1. Install the Catalyst CLI: `npm install -g zcatalyst-cli`
-2. Initialize the project: `catalyst init`
-3. Deploy: `catalyst deploy`
-
-### Local Development
-
-For local development, the Flask server runs in standalone mode with REST ZCQL queries routed directly to the Catalyst BaaS API. Mock seed data is available when Catalyst credentials are not configured.
-
----
-
-## High-Level Design (HLD)
-
-> Full enterprise architecture specification for Sentinel-KSP — covering multi-tier system design, security & session lifecycle, RBAC permission matrix, computational analytics formulations, and datastore schema.
-
-### HLD 1 — Executive Summary & Architectural Principles
-
-| # | Principle | Description |
-|---|-----------|-------------|
-| 1 | **Zero-Trust Session Governance** | Every request undergoes mandatory non-cached JWT verification, live session active-state evaluation against Catalyst Data Store, 15-minute sliding inactivity window enforcement, and strict RBAC permission validation. No in-memory officer or session caching is used. |
-| 2 | **Institutional & Regulatory Integrity** | Immutable audit logging of all administrative and analytical interactions. Cryptographic 10-step post-write hash verification on all credential mutations. |
-| 3 | **Decoupled Monorepo Architecture** | Clean separation between React 18 SPA client and stateless Flask REST API hosted as a Zoho Catalyst Advanced I/O Function. |
-| 4 | **Resilient BaaS Data Engine** | Dual-mode data access using direct Zoho Catalyst REST ZCQL API with OAuth 2.0 token caching and automatic fallback to mock datastores when credentials are not configured. |
+1. **Zero-Trust Administrative & Session Governance**: Every incoming request undergoes mandatory non-cached token verification, live session active-state evaluation against Catalyst Data Store, 15-minute sliding inactivity window enforcement, and strict RBAC permission validation.
+2. **Institutional & Regulatory Integrity**: Strict audit logging of all administrative and analytical interactions. Cryptographic 10-step post-write hash verification on credential mutations.
+3. **Decoupled Monorepo Architecture**: Clean separation between a high-performance React 18 SPA client layer and a stateless Flask REST API hosted as a Zoho Catalyst Advanced I/O Function.
+4. **Resilient BaaS Data Engine**: Dual-mode data access layer using direct Zoho Catalyst BaaS REST ZCQL API endpoints with OAuth 2.0 token caching and automatic fallback to mock datastores when credentials are not configured.
 
 ---
 
 ### HLD 2 — Multi-Tier System Architecture
 
-```mermaid
-graph TD
-    subgraph Client_Tier ["Client Tier — React 18 SPA"]
-        UI["User Interface Layer<br/>(Tailwind CSS / Lucide React)"]
-        State["State Management<br/>(AuthContext / ThemeContext / ToastContext)"]
-        Router["React Router v6<br/>Guarded Route Pipeline"]
-        Viz["Analytics Engine<br/>(Leaflet / vis-network / Recharts)"]
-        ClientAPI["HTTP Client Layer<br/>(fetchWithAuth Interceptor)"]
-
-        UI --> State
-        State --> Router
-        Router --> Viz
-        Viz --> ClientAPI
-    end
-
-    subgraph Gateway_Tier ["Gateway & Security Pipeline — Flask Middleware"]
-        Cors["CORS & Request Sanitizer"]
-        AuthMw["require_auth<br/>(JWT Decode & Account State)"]
-        SessMw["require_session<br/>(15-Min Sliding Window)"]
-        RbacMw["require_role<br/>(Least-Privilege RBAC)"]
-        AuditMw["audit_action<br/>(Regulatory Interceptor)"]
-
-        ClientAPI -->|HTTPS / Bearer JWT| Cors
-        Cors --> AuthMw
-        AuthMw --> SessMw
-        SessMw --> RbacMw
-        RbacMw --> AuditMw
-    end
-
-    subgraph Service_Tier ["Service & Computational Engine Layer"]
-        AuthSvc["AuthService"]
-        OfficerSvc["OfficerService"]
-        SessSvc["SessionService"]
-        AuditSvc["AuditService"]
-        GeoSvc["GeospatialService<br/>(DBSCAN Hotspots)"]
-        LinkSvc["LinkAnalysisService<br/>(NetworkX Graphs)"]
-        PredSvc["PredictiveService<br/>(TF-IDF / Cosine Similarity)"]
-
-        AuditMw --> AuthSvc
-        AuditMw --> OfficerSvc
-        AuditMw --> SessSvc
-        AuditMw --> AuditSvc
-        AuditMw --> GeoSvc
-        AuditMw --> LinkSvc
-        AuditMw --> PredSvc
-    end
-
-    subgraph Persistence_Tier ["Data Abstraction & BaaS Storage"]
-        Repo["Repository Layer<br/>(Officer / Session / Audit / Case / Accused)"]
-        CatClient["CatalystClient<br/>(REST ZCQL / OAuth Token Cache)"]
-        CatDataStore[("Zoho Catalyst Data Store<br/>(Cloud Relational BaaS)")]
-
-        AuthSvc --> Repo
-        OfficerSvc --> Repo
-        SessSvc --> Repo
-        AuditSvc --> Repo
-        GeoSvc --> Repo
-        LinkSvc --> Repo
-        PredSvc --> Repo
-
-        Repo --> CatClient
-        CatClient -->|REST ZCQL / JSON| CatDataStore
-    end
+```text
+┌──────────────────────────────────────────────────────────────┐
+│            Command Center Client (React 18 SPA)              │
+│  AuthContext → Guards → AppShell → Permission-Gated Pages    │
+└────────────────────────┬─────────────────────────────────────┘
+                         │ HTTPS JSON (Bearer JWT)
+                         ▼
+┌──────────────────────────────────────────────────────────────┐
+│         Enterprise Security Gateway (Flask Middleware)        │
+│  require_auth → require_session → require_role → audit_action│
+└────────────────────────┬─────────────────────────────────────┘
+                         │ Validated Internal Execution
+                         ▼
+┌──────────────────────────────────────────────────────────────┐
+│           Sentinel API Production Core (Flask Engine)         │
+│  Blueprints: Auth · Admin · Dashboard · Spatial · Graph       │
+│  Services: Geospatial (DBSCAN) · Link (NetworkX) · MO (TFIDF) │
+└────────────────────────┬─────────────────────────────────────┘
+                         │ Direct REST ZCQL Query Payload
+                         ▼
+┌──────────────────────────────────────────────────────────────┐
+│           Zoho Catalyst Data Store (Cloud Relational)         │
+│  Tables: Officers · ActiveSessions · AuditLogs · CaseMaster  │
+└──────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-### HLD 3 — Authentication & Session Lifecycle
+### HLD 3 — Authentication, Session Lifecycle & Cryptographic Verification
 
-#### 3a. Login Sequence (Single Active Session Policy)
+#### 3a. Single Active Session Policy & Eviction Flow
 
 ```mermaid
 sequenceDiagram
@@ -597,105 +183,100 @@ sequenceDiagram
     AuthSvc->>AuthSvc: bcrypt.checkpw(password, PasswordHash)
     AuthSvc->>AuthSvc: Verify AccountState in (Active, Pending)
     AuthSvc->>SessSvc: create_session(officer_id)
-    SessSvc->>CatDS: PATCH IsActive=false on old sessions
-    SessSvc->>CatDS: INSERT new ActiveSessions row
-    CatDS-->>SessSvc: SessionID + ROWID
+    SessSvc->>CatDS: Evict existing active sessions (IsActive=False)
+    SessSvc->>CatDS: INSERT into ActiveSessions
+    CatDS-->>SessSvc: New Session Record (SessionID)
     SessSvc-->>AuthSvc: Session Metadata
-    AuthSvc->>AuthSvc: JWTManager.issue_token(sub, sid, role)
-    AuthSvc-->>AuthRoute: JWT Token + Safe Profile
+    AuthSvc->>AuthSvc: Issue JWT (sub, sid, role)
+    AuthSvc-->>AuthRoute: Token & Safe Profile Payload
     AuthRoute-->>Client: HTTP 200 {token, officer}
-    Client-->>Officer: Render Guarded Workspace
+    Client-->>Officer: Render Operational Workspace
 ```
 
-#### 3b. Per-Request Middleware Pipeline
+#### 3b. Middleware Pipeline Execution
 
 ```mermaid
 flowchart LR
-    A[Incoming HTTP Request] --> B{require_auth}
-    B -->|JWT Invalid| X1[401 Unauthorized]
-    B -->|Account Locked/Disabled| X2[403 Account Restricted]
+    A[Incoming Request] --> B{require_auth}
+    B -->|Invalid Token| X1[401 Unauthorized]
+    B -->|Account Locked| X2[403 Restricted]
     B -->|Valid| C{require_session}
-    C -->|Session Not Active| X3[401 Session Expired]
-    C -->|Idle > 15 min| X4[401 Inactivity Timeout]
-    C -->|Valid| D[Update LastActivityTime]
+    C -->|Session Evicted| X3[401 Expired]
+    C -->|Idle > 15m| X4[401 Timeout]
+    C -->|Active| D[Update LastActivity]
     D --> E{require_role}
     E -->|Role Denied| X5[403 Access Denied]
-    E -->|Permitted| F{audit_action}
-    F --> G[Route Handler Executes]
-    G --> H[HTTP Response]
+    E -->|Permitted| F[audit_action]
+    F --> G[Route Execution]
 ```
 
-#### 3c. 10-Step Post-Write Credential Verification
+#### 3c. 10-Step Cryptographic Credential Post-Write Verification
 
 ```mermaid
 flowchart TD
-    A["1. Receive Change Password Request"] --> B["2. Reject if new == current"]
-    B --> C["3. Verify current password against live hash"]
-    C --> D["4. Hash new password — bcrypt 12 rounds"]
-    D --> E["5. REST PATCH Officers row in Catalyst"]
-    E --> F["6. Re-fetch live Officers row"]
-    F --> G{"7. New password matches persisted hash?"}
-    G -- No --> ERR1["FAIL: Hash mismatch"]
-    G -- Yes --> H{"8. Old password fails against persisted hash?"}
-    H -- No --> ERR2["FAIL: Old password still valid"]
-    H -- Yes --> I{"9. TempPasswordFlag == false?"}
-    I -- No --> ERR3["FAIL: Flag not cleared"]
-    I -- Yes --> J{"10. AccountState == Active?"}
-    J -- No --> ERR4["FAIL: State not transitioned"]
-    J -- Yes --> K["SUCCESS — Record audit log"]
+    A["1. Receive Change Password Request"] --> B["2. Validate New != Current Password"]
+    B --> C["3. Verify Current Password against Live Hash"]
+    C --> D["4. Hash New Password with bcrypt 12 rounds"]
+    D --> E["5. REST PATCH Update to Catalyst Officers Row"]
+    E --> F["6. Re-fetch Live Officers Row by OfficerID"]
+    F --> G{"7. New Password Matches Hash?"}
+    G -- No --> Err1["Raise Post-Write Exception"]
+    G -- Yes --> H{"8. Old Password Fails Hash?"}
+    H -- No --> Err2["Raise Post-Write Exception"]
+    H -- Yes --> I{"9. Check TempPasswordFlag == False?"}
+    I -- No --> Err3["Raise Post-Write Exception"]
+    I -- Yes --> J{"10. Check AccountState == Active?"}
+    J -- No --> Err4["Raise Post-Write Exception"]
+    J -- Yes --> K["Record Audit Log & Return Success"]
 ```
 
 ---
 
-### HLD 4 — RBAC Permission Matrix
+### HLD 4 — Role-Based Access Control (RBAC) Matrix
 
-| Role | OFFICER | SESSION | AUDIT | EMERGENCY | SECURITY | DASHBOARD | GEO | LINK | PREDICT | CASE |
-|------|---------|---------|-------|-----------|----------|-----------|-----|------|---------|------|
-| **CyberSecurityAdministrator** | CREATE, LOCK, UNLOCK, DISABLE | FORCE_LOGOUT, VIEW | VIEW | GRANT, END | VIEW, RESOLVE | VIEW | VIEW | VIEW | VIEW | READ |
-| **SCRBDataAnalyst** | — | — | — | — | — | VIEW | VIEW | VIEW | VIEW | READ, WRITE |
-| **FieldInvestigator** | — | — | — | — | — | — | — | VIEW | — | READ |
-| **CommandSupervisor** | — | — | — | — | — | VIEW | — | — | — | — |
-| **SystemAdministrator** | — | — | — | — | — | — | — | — | — | — |
-
-> **Least-Privilege Rule**: If the PRD is ambiguous about whether a role should hold a permission, the permission is NOT granted. `SystemAdministrator` has an intentionally empty permission set pending future PRD clarification.
+| Role | Domain Authority | Granted Permissions |
+| :--- | :--- | :--- |
+| **CyberSecurityAdministrator** | Complete administrative governance, officer provisioning, session termination, audit log review, emergency access, and incident resolution. | `OFFICER_CREATE`, `OFFICER_LOCK`, `OFFICER_UNLOCK`, `OFFICER_DISABLE`, `PASSWORD_RESET`, `SESSION_FORCE_LOGOUT`, `SESSION_VIEW`, `AUDIT_VIEW`, `EMERGENCY_ACCESS_GRANT`, `EMERGENCY_ACCESS_END`, `SECURITY_INCIDENT_VIEW`, `SECURITY_INCIDENT_RESOLVE`, `DASHBOARD_VIEW`, `GEOSPATIAL_VIEW`, `LINK_ANALYSIS_VIEW`, `PREDICTIVE_VIEW`, `CASE_READ` |
+| **SCRBDataAnalyst** | Operational crime intelligence, spatial hotspot monitoring, predictive risk scoring, MO similarity clustering, case creation & modification. | `CASE_READ`, `CASE_WRITE`, `DASHBOARD_VIEW`, `GEOSPATIAL_VIEW`, `LINK_ANALYSIS_VIEW`, `PREDICTIVE_VIEW` |
+| **FieldInvestigator** | Criminological link analysis, offender profile exploration, and case search. | `CASE_READ`, `LINK_ANALYSIS_VIEW` |
+| **CommandSupervisor** | High-level executive overview and statewide KPI monitoring. | `DASHBOARD_VIEW` |
+| **SystemAdministrator** | Infrastructure level health monitoring (no operational business permissions). | *None (Empty frozenset per least-privilege principle)* |
 
 ---
 
 ### HLD 5 — Computational Analytics Formulations
 
-#### 5a. Geospatial DBSCAN Hotspot Detection
+#### 5a. Geospatial DBSCAN Hotspot Clustering
 
-Given FIR case points $P = \{p_1, p_2, \dots, p_n\}$ where $p_i = (\text{lat}_i, \text{lon}_i)$:
+Given FIR incident coordinates $P = \{p_1, p_2, \dots, p_n\}$ where $p_i = (\text{lat}_i, \text{lon}_i)$, coordinates are converted to spherical radians:
 
-**Haversine Distance Metric:**
+$$\phi_i = \text{lat}_i \times \frac{\pi}{180}, \quad \lambda_i = \text{lon}_i \times \frac{\pi}{180}$$
+
+Pairwise distances are calculated via the **Haversine Formula**:
 
 $$d(p_i, p_j) = 2R \arcsin \left( \sqrt{\sin^2\left(\frac{\phi_j - \phi_i}{2}\right) + \cos(\phi_i)\cos(\phi_j)\sin^2\left(\frac{\lambda_j - \lambda_i}{2}\right)} \right)$$
 
-where $R = 6371.0088\text{ km}$ (Earth radius), $\phi$ and $\lambda$ are lat/lon in radians.
+where $R = 6371.0088\text{ km}$. Spatial clusters are identified using `DBSCAN(eps=2.0/6371.0088, min_samples=3, metric='haversine')`.
 
-**Clustering:** `DBSCAN(eps=2.0/6371.0088, min_samples=3, metric='haversine')`
+#### 5b. NetworkX Betweenness Centrality Link Analysis
 
-#### 5b. NetworkX Link Analysis & Betweenness Centrality
-
-Entity graph $G = (V, E)$ where $V = V_{\text{Case}} \cup V_{\text{Accused}}$.
-
-**Betweenness Centrality** identifies high-risk offender hub nodes:
+Given criminal network graph $G = (V, E)$ where $V = V_{\text{Case}} \cup V_{\text{Accused}}$, Betweenness Centrality $C_B(v)$ isolates key criminal hubs:
 
 $$C_B(v) = \sum_{s \neq v \neq t \in V} \frac{\sigma_{st}(v)}{\sigma_{st}}$$
 
-where $\sigma_{st}$ = total shortest paths from $s$ to $t$, $\sigma_{st}(v)$ = paths through $v$.
+where $\sigma_{st}$ is the total number of shortest paths from $s$ to $t$, and $\sigma_{st}(v)$ is the number of those paths passing through vertex $v$.
 
-#### 5c. Modus Operandi TF-IDF Cosine Similarity
+#### 5c. Modus Operandi TF-IDF Cosine Similarity Matching
 
-MO descriptions vectorized via TF-IDF:
+Case MO text corpus $D$ is vectorized using term frequency-inverse document frequency (TF-IDF):
 
 $$\text{TF-IDF}(t, d, D) = \text{TF}(t, d) \times \log \left( \frac{|D|}{1 + |\{d' \in D : t \in d'\}|} \right)$$
 
-**Pairwise Cosine Similarity:**
+Pairwise MO similarity score is evaluated as:
 
 $$\text{Sim}(A, B) = \frac{\mathbf{v}_A \cdot \mathbf{v}_B}{\|\mathbf{v}_A\|_2 \|\mathbf{v}_B\|_2}$$
 
-Pairs with $\text{Sim} \geq 0.35$ are flagged as potential serial MO matches.
+Case pairs exceeding threshold $\theta = 0.35$ are flagged as potential serial MO signature matches.
 
 ---
 
@@ -735,14 +316,130 @@ Pairs with $\text{Sim} \geq 0.35$ are flagged as potential serial MO matches.
 
 ### HLD 7 — Verification & Build Integrity
 
-| Tier | Command | Expected Result |
-|------|---------|----------------|
-| Backend Unit Tests | `python -m unittest discover -s functions/sentinel_api/tests -v` | 21/21 tests pass |
-| Frontend Build | `cd client && npm run build` | 0 compilation errors |
+| Test Tier | Verification Command | Status / Standard |
+| :--- | :--- | :--- |
+| **Backend Unit Tests** | `python -m unittest discover -s functions/sentinel_api/tests -v` | **21/21 Passed** (Auth, RBAC, Eviction, Post-Write) |
+| **Frontend Production Build** | `cd client && npm run build` | **Clean Build** (0 errors, 0 warnings) |
+
+---
+
+## Modules Overview
+
+### Crime Intelligence & Analytics
+- **Statewide Dashboard**: Real-time aggregated KPIs across all 31 Karnataka police districts.
+- **Geospatial Intelligence**: Leaflet-powered GeoJSON maps displaying DBSCAN density clusters.
+- **Predictive Risk Scoring**: Composite threat risk index evaluating crime velocity and clearance deficit.
+- **Behavioral Anomaly Detection**: Statistical anomaly flags across station incident rates.
+
+### Link Analysis & Investigation
+- **Entity Network Graph**: vis-network force-directed graph rendering suspect-to-case connections.
+- **Repeat Offender Profiles**: Joined criminal footprints across multiple police jurisdictions.
+- **MO Signature Matching**: TF-IDF cosine similarity search identifying serial modus operandi.
+
+### Cyber Command Center (Admin)
+- **Officer Management**: Account creation, temporary credentials, lock/unlock, and disabling.
+- **Active Session Governance**: Real-time list of all active sessions with forced remote logout.
+- **Immutable Audit Logs**: Comprehensive regulatory log viewer with filtering by actor and action.
+- **Emergency Access**: Controlled, time-bound access escalation with mandatory justification.
+
+---
+
+## Getting Started & Local Execution
+
+### Prerequisites
+- **Python 3.11+**
+- **Node.js 18+ & npm**
+- Zoho Catalyst account (optional for local mock execution)
+
+### 1. Setup Environment
+Clone the repository and create `.env` at root:
+```bash
+git clone https://github.com/Abhirupmandal/Sentinel-KSP.git
+cd Sentinel-KSP
+```
+
+`.env` configuration:
+```env
+CATALYST_PROJECT_ID=your_project_id
+CATALYST_PROJECT_KEY=your_project_key
+ZC_SDK_CLIENT_ID=your_self_client_id
+ZC_SDK_CLIENT_SECRET=your_self_client_secret
+ZC_SDK_REFRESH_TOKEN=your_self_client_refresh_token
+CATALYST_ENV=Development
+JWT_SECRET_KEY=your_jwt_secret
+```
+
+### 2. Start Backend API
+```bash
+pip install -r requirements.txt
+python functions/sentinel_api/main.py
+```
+*API server runs on `http://localhost:5000`.*
+
+### 3. Start Frontend Client
+```bash
+cd client
+npm install
+npm start
+```
+*React app opens on `http://localhost:3000`.*
+
+---
+
+## API Reference
+
+| Endpoint | Method | Role Required | Description |
+| :--- | :--- | :--- | :--- |
+| `/api/auth/login` | POST | Public | Authenticates officer and issues JWT token |
+| `/api/auth/logout` | POST | Authenticated | Terminates active session |
+| `/api/auth/change-password` | PUT | Authenticated | Mandatory password change with 10-step verification |
+| `/api/admin/create-user` | POST | CyberSecurityAdmin | Provisions new officer account |
+| `/api/admin/active-sessions` | GET | CyberSecurityAdmin | Lists all active authenticated sessions |
+| `/api/admin/force-logout` | POST | CyberSecurityAdmin | Forcefully terminates an active session |
+| `/api/admin/audit-logs` | GET | CyberSecurityAdmin | Queries immutable operational audit trail |
+| `/api/dashboard/stats` | GET | DASHBOARD_VIEW | Statewide aggregated crime KPIs |
+| `/api/spatial/hotspots` | GET | GEOSPATIAL_VIEW | GeoJSON DBSCAN hotspot clusters |
+| `/api/graph/network` | GET | LINK_ANALYSIS_VIEW | Nodes and edges for entity network graph |
+| `/api/analytics/mo-clusters` | GET | PREDICTIVE_VIEW | Pairwise MO similarity clusters ($\theta \ge 0.35$) |
+
+---
+
+## Repository Layout
+
+```text
+sentinel-ksp/
+├── LICENSE                        # Apache License 2.0
+├── README.md                      # Primary project documentation
+├── catalyst.json                  # Zoho Catalyst project manifest
+├── requirements.txt               # Python dependencies
+├── docs/
+│   └── HLD.md                     # High-Level Design specification document
+│
+├── client/                        # React 18 SPA Frontend
+│   ├── package.json
+│   ├── src/
+│   │   ├── App.js                 # Router & Protected Route Pipeline
+│   │   ├── index.css              # Design tokens, typography & Tailwind
+│   │   ├── context/               # AuthContext, ThemeContext, ToastContext
+│   │   ├── components/            # AppShell, NavHeader, StatsBar, Graphs
+│   │   ├── pages/                 # Admin, Analytics & Investigation Pages
+│   │   └── lib/                   # API clients & RBAC helpers
+│
+└── functions/
+    └── sentinel_api/              # Flask Backend Service
+        ├── main.py                # Flask app factory & blueprint registration
+        ├── config.py              # Catalyst SDK & REST ZCQL client initialization
+        ├── constants/             # Roles, Permissions, Ranks, Departments
+        ├── core/                  # CatalystClient, JWTManager, PasswordManager
+        ├── middleware/            # require_auth, require_session, require_role
+        ├── repositories/          # Officers, Sessions, Audit, Cases, Accused
+        ├── services/              # Auth, Officer, Geospatial, LinkAnalysis, Predictive
+        ├── routes/                # Blueprint route controllers
+        └── tests/                 # 21 Unit & Integration test suites
+```
 
 ---
 
 ## License
 
 This project is licensed under the [Apache License 2.0](LICENSE).
-
