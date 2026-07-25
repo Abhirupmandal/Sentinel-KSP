@@ -38,6 +38,8 @@ sdist/
 wheels/
 build/
 dist/
+*.zip
+
 
 # Installer logs
 pip-log.txt
