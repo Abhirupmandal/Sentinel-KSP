@@ -3,9 +3,13 @@
     "source": "functions",
     "targets": [
       "sentinel_api"
+    ],
+    "list": [
+      {
+        "name": "sentinel_api",
+        "type": "advancedio",
+        "path": "functions/sentinel_api"
+      }
     ]
-  },
-  "client": {
-    "source": "client"
   }
 }
