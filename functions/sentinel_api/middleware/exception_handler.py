@@ -56,3 +56,14 @@ def register_exception_handlers(app: Flask) -> None:
             message="Internal server error",
             status_code=500,
         )
+
+    @app.errorhandler(Exception)
+    def handle_unhandled_exception(exc: Exception):
+        """Handle all uncaught runtime exceptions gracefully with CORS headers."""
+        logger.exception("Unhandled runtime exception: %s", exc)
+        return error_response(
+            errors=[str(exc)],
+            message="Internal server error",
+            status_code=500,
+        )
+

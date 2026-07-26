@@ -18,10 +18,14 @@ from flask_cors import CORS
 
 load_dotenv()
 
-# Ensure target package directory is importable.
+# Ensure target package directory is importable and working directory is set to root.
 _TARGET_DIR = os.path.dirname(os.path.abspath(__file__))
 if _TARGET_DIR not in sys.path:
     sys.path.insert(0, _TARGET_DIR)
+try:
+    os.chdir(_TARGET_DIR)
+except Exception:
+    pass
 
 from routes.admin import admin_bp
 from routes.auth import auth_bp
@@ -200,13 +204,21 @@ def create_app():
 app = create_app()
 
 
-def handler(request):
+def handler(*args, **kwargs):
     """Zoho Catalyst Advanced Function entry point handler.
 
-    Passes the incoming Catalyst WSGI/HTTP request context directly to Flask.
+    Flexible handler supporting standard WSGI callable (environ, start_response),
+    single request context object/dict, or Catalyst (context, basicio) parameters.
     """
-    with app.request_context(request.environ):
+    if len(args) == 2 and callable(args[1]):
+        # Standard WSGI invocation: app(environ, start_response)
+        return app(args[0], args[1])
+
+    req = args[0] if args else kwargs.get("request")
+    environ = req if isinstance(req, dict) else getattr(req, "environ", req if req else {})
+    with app.request_context(environ):
         return app.full_dispatch_request()
+
 
 
 if __name__ == "__main__":

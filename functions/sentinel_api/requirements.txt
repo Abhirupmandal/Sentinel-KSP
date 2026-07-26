@@ -3,9 +3,5 @@ flask
 flask-cors
 requests
 python-dotenv
-scikit-learn
-networkx
-numpy
-pandas
 bcrypt
 pyjwt
