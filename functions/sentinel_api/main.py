@@ -13,7 +13,7 @@ from typing import Any
 
 import requests
 from dotenv import load_dotenv
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 load_dotenv()
@@ -150,22 +150,20 @@ class CatalystClient:
 
 
 def create_app():
-    """Application factory that assembles and configures the Flask app."""
     app = Flask(__name__)
+
     CORS(
         app,
         resources={
-            r"/api/*": {
-                 "origins": [
-                    "https://client-huukisbo.onslate.in",
+            r"/*": {
+                "origins": [
+                    "https://client-bfukfywu.onslate.in",
                     "http://localhost:3000",
-                    "http://127.0.0.1:3000"
-                ],
-            },
-            r"/": {"origins": "http://localhost:3000"},
+                    "http://127.0.0.1:3000",
+                ]
+            }
         },
         supports_credentials=False,
-        automatic_options=True,
     )
 
     # Register all feature blueprints.
