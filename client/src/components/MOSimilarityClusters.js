@@ -112,7 +112,7 @@ export default function MOSimilarityClusters() {
         const d = json.data || json;
         const raw = Array.isArray(d.matches) ? d.matches : (Array.isArray(d.clusters) ? d.clusters : (Array.isArray(d) ? d : []));
         const grouped = groupByMO(raw, 8);
-        setGroupedClusters(grouped.length ? grouped : SAMPLE_CLUSTERS);
+        setGroupedClusters(grouped);
         if (grouped.length) setExpandedId(grouped[0].title);
         setError(null);
         setLoading(false);
@@ -120,13 +120,12 @@ export default function MOSimilarityClusters() {
       .catch(err => {
         console.error('[Sentinel] MO clusters error:', err.message);
         setError(err.message);
-        setGroupedClusters(SAMPLE_CLUSTERS);
-        if (SAMPLE_CLUSTERS.length) setExpandedId(SAMPLE_CLUSTERS[0].title);
+        setGroupedClusters([]);
         setLoading(false);
       });
   }, []);
 
-  const display = groupedClusters.length ? groupedClusters : SAMPLE_CLUSTERS;
+  const display = groupedClusters;
 
   return (
     <motion.div

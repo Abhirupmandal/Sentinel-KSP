@@ -43,10 +43,10 @@ export default function DashboardPage() {
             <LayoutDashboard className="w-4.5 h-4.5" />
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-white tracking-tight">
+            <h1 className="text-xl font-semibold text-slate-900 dark:text-white tracking-tight">
               Karnataka Statewide Crime Intelligence Situational Overview
             </h1>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-600 dark:text-slate-400">
               SCRB Executive Intelligence & Cross-Jurisdiction Operations Console
             </p>
           </div>

@@ -106,7 +106,7 @@ export default function EntityNetworkGraph() {
         const nodes = graph.nodes || [];
         const edges = graph.edges || [];
 
-        const useGraph = nodes.length ? graph : SAMPLE_GRAPH;
+        const useGraph = graph;
         const useNodes = useGraph.nodes || [];
         const useEdges = useGraph.edges || edges;
 
@@ -146,17 +146,6 @@ export default function EntityNetworkGraph() {
       } catch (err) {
         console.error('[Sentinel] Network graph error:', err.message);
         setError(err.message);
-
-        // Fallback graph build
-        setSummary({ case_nodes: 2, accused_nodes: 2, victim_nodes: 1, edge_count: 4 });
-        const visNodes = SAMPLE_GRAPH.nodes.map(n => ({
-          id: n.id,
-          label: n.label,
-          color: nodeColor(n.type),
-          size: n.type === 'case' ? 20 : 12,
-        }));
-        const visEdges = SAMPLE_GRAPH.edges.map((e, idx) => ({ id: `edge-${idx}`, from: e.source, to: e.target, color: { color: '#2a3a4e' } }));
-        buildGraph(visNodes, visEdges);
         setLoading(false);
       }
     };

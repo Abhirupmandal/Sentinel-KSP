@@ -30,8 +30,8 @@ export default function Breadcrumbs() {
   if (pathnames.length === 0) return null;
 
   return (
-    <nav className="flex items-center gap-1.5 text-xs text-slate-400 mb-4">
-      <Link to="/" className="hover:text-white transition-colors flex items-center gap-1">
+    <nav className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mb-4">
+      <Link to="/" className="hover:text-slate-900 dark:hover:text-white transition-colors flex items-center gap-1">
         <Home className="w-3.5 h-3.5" />
       </Link>
 
@@ -42,11 +42,11 @@ export default function Breadcrumbs() {
 
         return (
           <div key={to} className="flex items-center gap-1.5">
-            <ChevronRight className="w-3 h-3 text-slate-600 shrink-0" />
+            <ChevronRight className="w-3 h-3 text-slate-400 dark:text-slate-600 shrink-0" />
             {isLast ? (
-              <span className="font-semibold text-slate-200">{displayName}</span>
+              <span className="font-semibold text-slate-900 dark:text-slate-200">{displayName}</span>
             ) : (
-              <Link to={to} className="hover:text-white transition-colors">
+              <Link to={to} className="hover:text-slate-900 dark:hover:text-white transition-colors">
                 {displayName}
               </Link>
             )}

@@ -85,6 +85,8 @@ export const ROLE_PERMISSIONS = {
 
   [Roles.COMMAND_SUPERVISOR]: new Set([
     Permissions.DASHBOARD_VIEW,
+    Permissions.GEOSPATIAL_VIEW,
+    Permissions.LINK_ANALYSIS_VIEW,
   ]),
 
   [Roles.SYSTEM_ADMINISTRATOR]: new Set(),

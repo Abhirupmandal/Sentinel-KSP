@@ -52,14 +52,14 @@ export default function Sidebar() {
 
   return (
     <aside
-      className={`sticky top-16 h-[calc(100vh-4rem)] bg-slate-950 border-r border-slate-800 transition-all duration-300 flex flex-col z-30 ${
+      className={`sticky top-16 h-[calc(100vh-4rem)] bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 transition-all duration-300 flex flex-col z-30 ${
         collapsed ? 'w-16' : 'w-64'
       }`}
     >
       {/* Collapse Toggle Button */}
       <button
         onClick={() => setCollapsed(!collapsed)}
-        className="absolute -right-3 top-4 w-6 h-6 rounded-full bg-slate-900 border border-slate-700 text-slate-400 hover:text-white flex items-center justify-center shadow-lg transition-colors z-40"
+        className="absolute -right-3 top-4 w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center justify-center shadow-lg transition-colors z-40"
       >
         {collapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
       </button>
@@ -86,10 +86,10 @@ export default function Sidebar() {
                     className={`flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all ${
                       isActive
                         ? 'bg-accent/15 text-accent border border-accent/30 font-semibold shadow-sm'
-                        : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/60'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-900/60'
                     }`}
                   >
-                    <IconComponent className={`w-4 h-4 shrink-0 ${isActive ? 'text-accent' : 'text-slate-400'}`} />
+                    <IconComponent className={`w-4 h-4 shrink-0 ${isActive ? 'text-accent' : 'text-slate-500 dark:text-slate-400'}`} />
                     {!collapsed && <span className="truncate">{item.label}</span>}
                   </Link>
                 );

@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Shield, Lock, User, AlertTriangle, Key, ArrowRight, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import BrandLogo from '../components/shared/BrandLogo';
 
 export default function LoginPage() {
   const [employeeId, setEmployeeId] = useState('');
@@ -46,19 +47,7 @@ export default function LoginPage() {
     <div className="min-h-screen bg-[#0b0e14] flex flex-col justify-between items-center p-6 text-slate-100 font-sans selection:bg-[#00d1ff]/30">
       {/* Top Classification Banner */}
       <div className="w-full max-w-5xl flex items-center justify-between border-b border-white/10 pb-4 pt-2">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#00d1ff]/10 border border-[#00d1ff]/30 text-[#00d1ff]">
-            <Shield className="w-4.5 h-4.5" />
-          </div>
-          <div>
-            <h2 className="text-sm font-semibold text-white tracking-tight">
-              KARNATAKA STATE POLICE
-            </h2>
-            <p className="text-[10px] text-slate-400">
-              Statewide Crime Intelligence & Cyber Command Network
-            </p>
-          </div>
-        </div>
+        <BrandLogo />
 
         <div className="flex items-center gap-2 px-3 py-1 rounded bg-rose-500/10 border border-rose-500/30 text-rose-400 font-mono text-[10px] font-bold tracking-widest uppercase">
           <ShieldCheck className="w-3.5 h-3.5" />

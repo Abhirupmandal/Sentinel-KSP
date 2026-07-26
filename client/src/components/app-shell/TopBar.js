@@ -3,6 +3,7 @@ import { Shield, Activity, LogOut, Sun, Moon } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { API_BASE_URL } from '../../lib/api/config';
+import BrandLogo from '../shared/BrandLogo';
 
 function StatusBadge() {
   const [status, setStatus] = useState('checking');
@@ -35,7 +36,7 @@ function StatusBadge() {
   };
 
   return (
-    <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/60 border border-slate-800 text-xs font-medium text-slate-300 backdrop-blur-sm">
+    <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300 backdrop-blur-sm">
       <span className={`w-2 h-2 rounded-full animate-pulse ${colorMap[status]}`} />
       <span className="capitalize text-[11px]">
         {status === 'checking' ? 'Connecting...' : status}
@@ -49,34 +50,22 @@ export default function TopBar() {
   const { user, logout, isAuthenticated } = useAuth();
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-slate-800 bg-slate-950/80 backdrop-blur-md">
-      <div className="flex items-center justify-between h-16 px-6 max-w-[1600px] mx-auto">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-accent/20 border border-accent/30 shadow-md shadow-accent/10">
-            <Shield className="w-5 h-5 text-accent" />
-          </div>
-          <div>
-            <h1 className="text-base font-bold tracking-tight text-white flex items-center gap-1.5">
-              Sentinel<span className="text-accent"> Engine</span>
-            </h1>
-            <p className="text-[10px] text-slate-400 -mt-0.5">
-              Karnataka State Police Cyber Command Center
-            </p>
-          </div>
-        </div>
+    <header className="sticky top-0 z-40 w-full border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md transition-colors duration-200">
+      <div className="flex items-center justify-between h-16 px-6 w-full">
+        <BrandLogo />
 
         <div className="flex items-center gap-4">
           <StatusBadge />
 
-          <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400">
+          <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
             <Activity className="w-3.5 h-3.5 text-emerald-400" />
             <span className="text-[11px]">v1.0.8</span>
           </div>
 
           {isAuthenticated && user && (
-            <div className="flex items-center gap-3 pl-3 border-l border-slate-800">
+            <div className="flex items-center gap-3 pl-3 border-l border-slate-200 dark:border-slate-800">
               <div className="text-right hidden md:block">
-                <div className="text-xs font-semibold text-white leading-tight">
+                <div className="text-xs font-semibold text-slate-900 dark:text-white leading-tight">
                   {user.full_name || user.officer_id}
                 </div>
                 <div className="text-[10px] text-accent font-medium">
@@ -96,12 +85,12 @@ export default function TopBar() {
           <button
             onClick={toggleTheme}
             title="Toggle theme"
-            className="flex items-center justify-center w-8 h-8 rounded-lg border border-slate-800 bg-slate-900/60 hover:bg-slate-800 text-slate-300 transition-colors"
+            className="flex items-center justify-center w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors"
           >
             {theme === 'dark' ? (
               <Sun className="w-4 h-4 text-amber-400" />
             ) : (
-              <Moon className="w-4 h-4 text-slate-400" />
+              <Moon className="w-4 h-4 text-slate-600" />
             )}
           </button>
         </div>

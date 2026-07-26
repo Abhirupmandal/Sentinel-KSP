@@ -12,7 +12,7 @@ const pageVariants = {
 
 export default function AppShell({ children }) {
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans antialiased selection:bg-accent/30">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans antialiased selection:bg-accent/30 transition-colors duration-200">
       {/* Sticky Top Bar */}
       <TopBar />
 

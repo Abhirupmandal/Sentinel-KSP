@@ -66,7 +66,7 @@ export default function SpatialHotspots() {
       });
   }, []);
 
-  const displayData = geoData && !apiFailed ? geoData : sampleHotspots;
+  const displayData = geoData && !apiFailed ? geoData : { type: 'FeatureCollection', features: [], summary: { clusters: 0, total_cases: 0 } };
   const features = displayData?.features || [];
 
   return (

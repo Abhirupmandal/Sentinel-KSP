@@ -74,6 +74,7 @@ ROLE_PERMISSIONS: dict[str, FrozenSet[str]] = {
         Permission.CASE_WRITE,
         Permission.DASHBOARD_VIEW,
         Permission.GEOSPATIAL_VIEW,
+        Permission.LINK_ANALYSIS_VIEW,
         Permission.PREDICTIVE_VIEW,
     }),
 
@@ -90,18 +91,11 @@ ROLE_PERMISSIONS: dict[str, FrozenSet[str]] = {
     }),
 
     # ── CommandSupervisor ────────────────────────────────────────────────
-    # Scope: Executive dashboard overviews, statewide KPIs.
-    #
-    # GEOSPATIAL_VIEW removed: geospatial routes serve analyst-granularity
-    #   tools (district drilldowns, hotspot clustering, spike detection),
-    #   not executive overviews. If a future executive map route is added,
-    #   it should be gated by DASHBOARD_VIEW.
-    #
-    # NOT granted (PRD does not justify):
-    #   GEOSPATIAL_VIEW, LINK_ANALYSIS_VIEW, PREDICTIVE_VIEW, CASE_*
-    #   All admin/security permissions.
+    # Scope: Executive dashboard overviews, statewide KPIs, geospatial summary.
     Role.COMMAND_SUPERVISOR.value: frozenset({
         Permission.DASHBOARD_VIEW,
+        Permission.GEOSPATIAL_VIEW,
+        Permission.LINK_ANALYSIS_VIEW,
     }),
 
     # ── SystemAdministrator ──────────────────────────────────────────────
